@@ -1,0 +1,33 @@
+{
+  "name": "iol-investment-agent",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.16.0 <23 || >=24 <25",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@iol-agent/api",
+    "start": "node --env-file-if-exists=.env apps/api/dist/main.js",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/test.mjs",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "audit:dependencies": "npm audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@types/express": "5.0.5",
+    "@types/node": "22.19.0",
+    "eslint": "9.39.1",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2"
+  }
+}

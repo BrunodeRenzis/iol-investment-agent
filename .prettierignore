@@ -1,0 +1,19 @@
+node_modules/
+**/dist/
+.test-dist/
+coverage/
+package-lock.json
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+# Preserve existing policy documents and prompt templates.
+AGENTS.md
+CLAUDE.md
+CONTRIBUTING.md
+prompts/
+docs/ARCHITECTURE.md
+docs/PROJECT.md
+docs/SECURITY.md
+docs/WORKFLOW.md
+docs/ROADMAP.md
