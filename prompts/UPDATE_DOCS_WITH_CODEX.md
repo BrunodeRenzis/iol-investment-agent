@@ -1,18 +1,27 @@
-Read `AGENTS.md` and inspect `git status` before editing.
+Read the canonical documents in order:
 
-This task is documentation-only.
+1. `AGENTS.md`
+2. `CLAUDE.md` when applicable (when using Claude)
+3. `docs/PROJECT.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/SECURITY.md`
+6. `docs/IMPLEMENTATION_PLAN.md`
+7. `docs/ROADMAP.md`
+8. `docs/DECISIONS.md`
+9. `docs/WORKFLOW.md`
+10. `docs/MASTER_PLAN.md`
 
-Apply the provided documentation v2 files with these rules:
+Inspect `git status` before editing. This task is documentation-only.
 
-1. Replace `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/PROJECT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/ROADMAP.md`, and `docs/WORKFLOW.md`.
-2. Add `docs/IMPLEMENTATION_PLAN.md`.
-3. Do NOT replace existing `docs/DECISIONS.md`. Append ADRs from `docs/DECISIONS_V2_APPEND.md`, preserving all existing decisions and avoiding duplicate ADR numbers.
-4. Do not change application source code.
-5. Do not add runtime dependencies.
-6. Do not create trading code yet.
-7. Do not create broker write capabilities.
-8. Do not commit, push, merge, rebase, reset, or stage files.
-9. Run existing formatting/repository checks that cover Markdown, and run `npm run check`.
-10. Show the final diff summary.
+Apply only the supplied, user-approved documentation changes:
 
-At completion return the standard sections from `AGENTS.md`, and explicitly state that no commit or push was performed.
+1. Preserve unrelated local edits and existing ADR decision text.
+2. Append material decisions directly to `docs/DECISIONS.md` with unique identifiers and explicit supersession; do not recreate an ADR import appendix.
+3. Keep canonical reading lists and roadmap/implementation/master-plan ordering consistent.
+4. MASTER_PLAN.md is subordinate to AGENTS.md for policy and accepted ADRs for architecture.
+5. Do not modify application code, dependencies, or create packages, trading code, or broker writes.
+6. Do not stage, commit, push, merge, rebase or reset.
+7. Run Markdown formatting/document checks and `npm run check`; state why any required validation cannot run.
+8. Show the final documentation diff summary.
+
+Return the requested completion format, or the standard AGENTS.md format if none was specified, and explicitly state no commit or push was performed.

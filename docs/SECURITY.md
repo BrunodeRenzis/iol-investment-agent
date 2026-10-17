@@ -1,62 +1,85 @@
 # Security model
 
-## Security posture
+## Authority and phase boundaries
 
-This system handles sensitive financial information and may eventually gain transaction capabilities. Default posture: **deny, minimize, isolate, validate, audit**.
+Default posture: **deny, minimize, isolate, validate, audit**. `AGENTS.md` governs policy and accepted ADRs govern architecture.
 
-## Capability phases
+Before Phase 9 is explicitly approved, NO broker-write code may exist: neither sandbox nor production. `packages/execution` remains ABSENT, not disabled. Buy/sell, cancellations/replacements, caución, FCI subscribe/redeem, transfers/withdrawals, and automatic stop-loss/take-profit writes are all prohibited.
 
-### Read-only broker phase
+Research and paper trading must never call broker write endpoints of any kind. Paper trading is internal simulation only, with no IOL writes or sandbox orders. Its strategy/risk contracts grant no execution authority.
 
-Allowed: balances, portfolio, market data, portfolio analytics, research signals, backtesting, paper trading.
-Forbidden: real buy/sell, cancel/replace, FCI subscribe/redeem, caución, transfers/withdrawals, automatic stop-loss/take-profit execution.
+Phase 9 requires explicit user approval and a threat-model review before sandbox-only write code is introduced. Phase 10 requires separate approval and another threat-model review for production. Deployment, sandbox success, model advice, and strategy eligibility never authorize production writes.
 
-### Future sandbox execution phase
+Automated tests must NEVER call production trading endpoints. Use fixtures/mocks and, only in an approved Phase 9, authorized sandbox tests.
 
-May only begin after explicit user approval and must include a deterministic order model, risk checks, preview, confirmation state machine, idempotency, audit events, and sandbox-only broker adapter.
+## Broker credential isolation
 
-### Future production execution phase
+Broker read and write permissions/scopes must be separated whenever the provider supports it. Step 3 must verify whether IOL offers true read-only credentials/scopes; do not infer token permissions from a read-only adapter. If true read-only credentials/scopes are unavailable, treat the token as write-capable even while the adapter is read-only. Until verified otherwise, unknown scope capability is treated as write-capable too.
 
-Must not begin automatically after sandbox success. Requires a separate explicit decision and security review.
+In that case, isolate the token strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and add automated tests enforcing that allowlist. Never pass broker credentials/tokens to scheduler, AI, MCP, trading research, or a generic HTTP client. No other package may obtain direct broker credentials; callers use the narrow IOL adapter. Future write credentials must be separate from read credentials whenever possible. These controls do not authorize broker-write code before approved Phase 9.
 
-## Capability separation
+## Authentication and authorization
 
-Keep broker read access, research, MCP, AI advisory, and future broker write access separated. Where possible, use separate credentials/scopes for read and write. The AI layer must never possess broker write credentials.
+Financial/account data endpoints require authentication and authorization before introduction, including on localhost/loopback, as required by ADR-002 and clarified by ADR-010. Public health exposes no financial data. Authorization fails closed. MCP clients authenticate and receive narrowly scoped tool permissions.
 
-## Credentials
+Validate HTTP inputs, provider responses, MCP arguments, AI structured outputs, and database values crossing trust boundaries. Sensitive schemas reject unexpected fields where practical. Apply OAuth state/PKCE and CSRF protection where applicable. Use least privilege, bounded timeouts, rate limits, safe error mapping, and no arbitrary broker/HTTP/SQL/shell proxies.
 
-Store secrets only in environment variables or an appropriate secret manager. Never commit `.env`, send credentials to OpenAI/Anthropic, expose credentials through MCP, or log authorization headers/tokens/private keys. Rotate compromised credentials immediately.
+## AI has zero authority
 
-## Input and provider validation
+AI has NO authority over account permissions, execution permissions, hard portfolio/risk limits, position sizing constraints, order validity, confirmation, or real-money execution. Only deterministic code and explicit human authorization control those capabilities.
 
-Validate HTTP inputs, IOL responses, timestamps, quote freshness, MCP arguments, AI structured output, and database values crossing trust boundaries. Treat provider data as untrusted external input.
+AI may only advise, critique, explain, or veto/escalate a recommendation. An AI veto is advisory and must never block the emergency kill switch or risk-reducing user actions. Those actions still require deterministic checks and the relevant human/phase authorization; this is not an exception to the pre-Phase-9 prohibition.
 
-## Market-data integrity
+Models cannot promote strategies or acquire new capabilities through prompt injection, external news, or tool outputs. Provider consensus is not authorization.
 
-Protect against stale quotes, duplicate observations, missing bars, malformed timestamps, timezone errors, accidental future data, and silent schema changes. Backtests must reject or explicitly report invalid datasets.
+## Secrets and logging
 
-## LLM security
+- NEVER put ANY secret in an LLM prompt, not only broker credentials.
+- Never hardcode or log credentials, tokens, passwords, cookies, private keys, or other secrets.
+- Never expose broker credentials to MCP or model providers.
+- Minimize/redact account identifiers and sensitive personal financial identifiers before model calls where possible.
+- Never log complete IOL responses if they may contain sensitive account data.
+- Do not persist full AI prompts/responses containing sensitive portfolio data unless the requirement is explicitly approved by the user and the data is protected.
+- Keep secret files ignored and examples placeholder-only. If exposure occurs, stop and recommend rotation.
 
-Models may summarize, analyze, propose, critique, and veto/escalate. Models may not bypass hard risk checks, authorize their own proposals, construct arbitrary broker HTTP requests, access broker secrets, change execution permissions, or silently promote strategies into production.
+## Persistence and data terms
 
-Prompt injection from external news/content must not create new tool permissions.
+Persistence requires least privilege, access controls, encryption at rest where supported, secure backups/recovery, retention rules, and data minimization. Restrict access to datasets and research artifacts; redact sensitive financial identifiers.
 
-## MCP security
+Before market-data persistence or redistribution, verify current IOL/provider terms for storage, historical retention, and redistribution. Record permitted use and unresolved restrictions; do not infer permissions. Append-only provenance does not mean indefinite retention: define lawful retention/deletion procedures, audit any required deletion, and mark affected dataset versions unavailable rather than silently rewriting research evidence.
 
-Expose narrow tools, authenticate clients, authorize per capability, prefer read-only tools, apply rate limits, log safe invocation metadata, and do not expose filesystem/shell/arbitrary DB administration/arbitrary HTTP through the investment MCP server.
+Raw observations are append-only. Corrected/normalized datasets are versioned, and backtests reference immutable versions. Preserve source/provider, exchange, ingestion, and "information available at" timestamps. Historical decisions use information availability, not merely exchange time. Define staleness per instrument/data class. Never silently manufacture/backfill real-time observations; later historical imports remain distinct from actual collection.
 
-## Scheduler security
+## Provider and agent behavior
 
-A scheduler may autonomously collect allowed data, calculate indicators, run backtests, run paper trading, evaluate previous signals, and create advisory reports. It may not autonomously trigger production financial writes.
+Never invent undocumented IOL behavior. Mark unknown behavior UNKNOWN and verify it against official documentation or an authorized read-only sandbox interaction before implementation. This does not permit broker-write code before Phase 9.
 
-## Future real-order confirmation design
+Agents may never silently weaken/change the security model. Business/risk rules must be testable without network access. If required validation cannot run, state exactly which validation and why.
 
-Any real order requires a normalized deterministic order object, deterministic risk result, human-readable preview, explicit user approval, short-lived confirmation token, exact-match validation between preview and execution, idempotency key, immutable audit event, and emergency kill switch. If any material field changes after preview, require new confirmation.
+## Research integrity
 
-## Secret scanning
+The governed lifecycle is:
 
-CI should continue running Gitleaks. Early Phase 1 hardening should add a local staged-file secret scan or equivalent pre-commit protection without silently mutating developer machines.
+`IDEA -> SPECIFIED -> BACKTESTED -> VALIDATION_PENDING -> VALIDATED -> PAPER_TRADING -> REVIEW_PENDING -> REVIEWED -> ELIGIBLE_FOR_HUMAN_APPROVAL`
 
-## Research integrity as safety
+Additional states are `REJECTED`, `SUSPENDED`, and `RETIRED`. Autonomous research may reach `BACKTESTED` / `VALIDATION_PENDING`; a human authorizes `VALIDATED` and every later promotion. Agents only recommend. Audit every transition and version every strategy edit. Deterministic automation MAY move a strategy to `REJECTED` when objective rejection criteria fail, with recorded criteria/evidence, and may suspend unsafe activity. Rejection is not promotion; automation may NOT promote beyond `BACKTESTED` / `VALIDATION_PENDING`. Human authorization remains required for `VALIDATED`, every later promotion, and resumption. An AI recommendation cannot restore permissions.
 
-A misleading backtest can cause financial harm even when code is secure. Therefore forbid look-ahead bias, document survivorship/data limitations, include costs/slippage assumptions, preserve failed signals, version strategy changes, separate optimization from evaluation, and label simulated results clearly.
+Apply all backtesting safeguards in `AGENTS.md` section 13 and ADR-013: prospective evaluation of AI/news/LLM-derived features by default; proof of exact historical model/data availability for any historical exception; complete instrument identity; declared return currency/basis and compatible benchmarks; corporate-action/fixed-income adjustments; mandatory local/BYMA spread/slippage handling; realistic liquidity, settlement and market constraints; survivorship-bias protection; protected holdout data; and preservation of every run, including failed/discarded variants and parameter searches. No failed experiments may be erased to improve apparent performance.
+
+## Scheduler controls
+
+Use job type + scope/instrument + scheduled time slot as the idempotency key, or a documented equivalent natural key. Enforce unique database constraints where appropriate, overlap locks/single-runner protection, and signal-to-paper-trade deduplication. Duplicate signals must not produce duplicate paper trades.
+
+Record missed runs and observable failures. Missed real-time observations remain gaps, never reconstructed snapshots. Use bounded retry/timeout/rate-limit policies, a scheduler kill switch, and explicit AI-call cost/token budgets before any scheduled model usage. A scheduler has no broker-write authority.
+
+## Deployment gate
+
+Moving broker credentials or financial data off the local machine changes the security boundary. Before deployment, including 24/7 operation, require explicit user approval, threat-model review, a credential/secrets plan, database security, tested backup/recovery, network exposure review, and monitoring. This gate applies whenever deployment is proposed, even before Phase 6. Deployment never grants broker-write permissions.
+
+## Future approved execution
+
+The separate approved execution boundary enforces deterministic validity/risk checks, preview, explicit human confirmation, short expiry, exact field binding, idempotency, immutable audit events, and an emergency kill switch. Bind instrument/security, market, currency, settlement, side, quantity/nominal, and price/type. Any material change invalidates confirmation. Fail closed and never blindly retry a potentially submitted order.
+
+## Dependencies and secret scanning
+
+Pin/lock dependencies, review major upgrades, retain vulnerability scanning, and keep Gitleaks CI. ADR-015 retains ADR-003's no-local-hooks policy: implement a future manually invoked staged-file scan that reads the index without staging or rewriting it. Do not install hooks or change Git hook configuration. A future hook policy would need an explicitly approved superseding ADR first.

@@ -5,7 +5,7 @@ This repository may be edited by the user, Codex, and Claude.
 ## Before editing
 
 1. Read `AGENTS.md`.
-2. Read relevant docs.
+2. Follow the canonical reading order in `docs/WORKFLOW.md`, including `docs/MASTER_PLAN.md`; AGENTS.md and accepted ADRs take precedence.
 3. Run `git status`.
 4. Do not overwrite unrelated working-tree changes.
 5. Keep tasks focused.
@@ -13,6 +13,7 @@ This repository may be edited by the user, Codex, and Claude.
 ## Branches
 
 Recommended:
+
 - `feature/<short-name>`
 - `fix/<short-name>`
 - `refactor/<short-name>`
@@ -25,6 +26,7 @@ Agents must not create or switch branches unless the user asks or the current wo
 Agents do not commit by default.
 
 At task completion, provide a suggested Conventional Commit message:
+
 - `feat(scope): ...`
 - `fix(scope): ...`
 - `refactor(scope): ...`
@@ -37,6 +39,7 @@ The user performs the commit.
 ## Pull requests
 
 Before proposing a merge:
+
 - lint passes,
 - typecheck passes,
 - tests pass,
@@ -49,6 +52,7 @@ Before proposing a merge:
 Do not have Codex and Claude modify the same files concurrently.
 
 Preferred workflow:
+
 1. Agent A implements.
 2. User saves/checks changes.
 3. Agent B reviews the diff and tests.

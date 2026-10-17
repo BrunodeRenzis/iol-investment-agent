@@ -32,8 +32,29 @@ Do not parallelize until boundaries are stable. When useful, use different branc
 
 ## Repository context
 
-New agent sessions should read `AGENTS.md`, `CLAUDE.md` when using Claude, `docs/PROJECT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, and `docs/DECISIONS.md`.
+1. `AGENTS.md`
+2. `CLAUDE.md` when applicable (when using Claude)
+3. `docs/PROJECT.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/SECURITY.md`
+6. `docs/IMPLEMENTATION_PLAN.md`
+7. `docs/ROADMAP.md`
+8. `docs/DECISIONS.md`
+9. `docs/WORKFLOW.md`
+10. `docs/MASTER_PLAN.md`
+
+Then inspect `git status` and the relevant diff.
 
 ## Commit discipline
 
 Agents do not commit by default. They may suggest Conventional Commit messages. The user performs the commit unless a single explicit Git action is authorized for that turn.
+
+## Policy and operational gates
+
+AGENTS.md controls policy and accepted, non-superseded ADRs control architecture. MASTER_PLAN.md is a subordinate operational sequence, not authority to implement another phase. Agents may never silently weaken/change security. Surface unknown IOL behavior, mark it UNKNOWN, and verify official documentation or authorized read-only sandbox behavior before implementation.
+
+Before Phase 9 approval and threat-model review there is no broker-write code, including sandbox, and execution remains absent. Paper trading is internal simulation. Automated tests NEVER call production trading endpoints. Authentication/authorization precedes financial/account endpoints, including localhost. AI has zero protected-capability authority and cannot promote strategies; every promotion to VALIDATED or later is human-authorized and auditable. Deterministic automation may move a strategy to REJECTED when objective rejection criteria fail; this is not promotion and does not bypass the human gates (ADR-017). An AI veto is advisory and cannot block emergency kill switches or risk-reducing user actions under deterministic controls.
+
+Start the minimal collector in Phase 2.5. Before off-machine/24/7 deployment, apply the explicit approval and security gate in ROADMAP.md/ADR-016. This never grants broker writes.
+
+Future local staged scanning is a manually invoked command under ADR-015, with no hooks installed or Git hook configuration changed. Preserve the index. If required validation cannot run, state which check and why; never weaken a check to pass.

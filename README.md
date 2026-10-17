@@ -6,9 +6,9 @@ A secure, auditable personal investment platform integrating IOL data with syste
 
 **Phase 0 complete: secure local backend foundation.**
 
-The next implementation work is focused on financial-domain foundations and **read-only IOL integration**.
+Documentation v2.1 is adopted as canonical after independent review. Operational plans remain subordinate to `AGENTS.md` for policy and accepted, non-superseded ADRs in `docs/DECISIONS.md` for architecture. Future implementation begins only with a user-selected step in financial foundations and **read-only IOL integration**.
 
-There is currently **no production trading capability**.
+Before Phase 9 is explicitly approved, **NO broker-write code may exist**, including sandbox and production. `packages/execution` remains **ABSENT**. Paper trading is entirely internal simulation with no broker writes.
 
 ## Product direction
 
@@ -23,13 +23,15 @@ EXECUTE
 risk checks / preview / explicit human approval / broker execution
 ```
 
-The first two levels may eventually run autonomously. Real-money execution may not.
+Observation and research may be autonomous within an approved phase. Paper simulation may run autonomously only within an approved phase and for a human-approved strategy state. Research/paper code never calls broker write endpoints of any kind. Real-money execution may not be autonomous.
 
 ## Safety model
 
-> Observation may be autonomous. Research may be autonomous. Paper trading may be autonomous. Real-money execution may not be autonomous.
+> Observation may be autonomous within an approved phase. Research may be autonomous within an approved phase. Paper trading may run autonomously only for a human-approved strategy state within an approved phase. Real-money execution may not be autonomous.
 
-AI models may analyze and propose. Deterministic code owns hard risk rules. Future real-money orders require an explicit user confirmation flow.
+AI may only advise, critique, explain, or veto/escalate recommendations. It has NO authority over account/execution permissions, hard portfolio/risk limits, position sizing constraints, order validity, confirmation, or real-money execution. Only deterministic code and explicit human authorization control those capabilities. An AI veto is advisory and must never block the emergency kill switch or risk-reducing user actions under deterministic controls.
+
+Financial/account endpoints require authentication and authorization before introduction, even on localhost. Never put ANY secret in an LLM prompt. Automated tests must NEVER call production trading endpoints. Each broker-write phase requires explicit user approval and threat-model review.
 
 See `AGENTS.md` and `docs/SECURITY.md`.
 
@@ -68,7 +70,7 @@ packages/
   scheduler/        scheduled observation/research jobs
   ai/               provider-neutral AI advisory layer
   mcp/              narrow read-only MCP tools
-  execution/        future gated execution boundary
+  execution/        ABSENT before explicitly approved Phase 9
 ```
 
 Not every package exists yet. They are introduced incrementally by the roadmap.
@@ -82,47 +84,50 @@ SPECIFIED
   ↓
 BACKTESTED
   ↓
+VALIDATION_PENDING
+  ↓
 VALIDATED
   ↓
 PAPER_TRADING
+  ↓
+REVIEW_PENDING
   ↓
 REVIEWED
   ↓
 ELIGIBLE_FOR_HUMAN_APPROVAL
 ```
 
-Eligibility still does not grant autonomous execution.
+Additional states: `REJECTED`, `SUSPENDED`, `RETIRED`. Autonomous research may reach BACKTESTED / VALIDATION_PENDING. A HUMAN promotes to VALIDATED and authorizes every subsequent promotion. Agents only recommend promotion. Deterministic automation may move a strategy to REJECTED when objective rejection criteria fail; rejection does not bypass any human promotion gate. Every transition is auditable and strategy edits create new versions. Eligibility never grants execution permission.
 
-## Near-term implementation
+## Operational sequence
 
-1. harden local Git/secret/test workflow;
-2. define decimal-safe financial primitives;
-3. implement read-only IOL access;
-4. normalize portfolio and quote data;
-5. persist market observations and portfolio snapshots;
-6. build deterministic risk metrics;
-7. add indicators and strategy contracts;
-8. add reproducible backtesting;
-9. add paper trading;
-10. add scheduled data collection;
-11. expose narrow read-only MCP tools;
-12. add OpenAI and Anthropic advisory adapters;
-13. consider execution only after a separate security review.
+1. Phase 1: repository hardening without local hooks, decimal primitives, verified read-only IOL contracts and authenticated financial endpoints.
+2. Phase 2: verify data-use terms, secure persistence and portfolio intelligence.
+3. Phase 2.5: minimal scheduled read-only collection to accumulate forward data.
+4. Phases 3–4: governed research and reproducible, bias-aware backtesting.
+5. Phase 5: human-approved internal paper simulation.
+6. Phase 6: mature scheduler/autonomous research within approved states.
+7. Deployment gate: explicit approval and security review before off-machine/24/7 operation, whenever proposed; no broker-write permissions granted.
+8. Phases 7–8: narrow read-only MCP and zero-authority AI advice.
+9. Phase 9: separately approved and threat-modeled sandbox execution.
+10. Phase 10: optional production execution under a separate approval and threat-model review.
 
-See `docs/ROADMAP.md` and `docs/IMPLEMENTATION_PLAN.md`.
+Use `docs/MASTER_PLAN.md` for the high-level operational sequence, subordinate to `AGENTS.md` for policy and accepted ADRs in `docs/DECISIONS.md` for architecture. `ROADMAP.md` defines phases/gates and `IMPLEMENTATION_PLAN.md` the corresponding detailed steps.
 
 ## Documentation
 
 Read in this order:
 
 1. `AGENTS.md`
-2. `docs/PROJECT.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/SECURITY.md`
-5. `docs/IMPLEMENTATION_PLAN.md`
-6. `docs/ROADMAP.md`
-7. `docs/DECISIONS.md`
-8. `docs/WORKFLOW.md`
+2. `CLAUDE.md` when applicable (when using Claude)
+3. `docs/PROJECT.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/SECURITY.md`
+6. `docs/IMPLEMENTATION_PLAN.md`
+7. `docs/ROADMAP.md`
+8. `docs/DECISIONS.md`
+9. `docs/WORKFLOW.md`
+10. `docs/MASTER_PLAN.md`
 
 ## Agent workflow
 

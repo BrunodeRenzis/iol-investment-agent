@@ -1,6 +1,6 @@
 # Architecture Decision Record Index
 
-Use this file for important project decisions.
+This is the single architecture decision log. AGENTS.md controls policy; accepted, non-superseded ADRs govern architecture within that policy. MASTER_PLAN.md is subordinate operational guidance. Historical decision text is preserved below; explicit supersession and clarification records determine current requirements.
 
 Format:
 
@@ -42,6 +42,8 @@ Lower operational complexity, easier local development, easier auditing, and suf
 ## ADR-002 — Minimal Phase 0 workspace and local boundary
 
 **Status:** Accepted
+
+**Clarified by:** ADR-010.
 **Date:** 2026-10-16
 
 ### Context
@@ -92,6 +94,8 @@ user approval; no history or repository state is created by this task.
 ## ADR-003 — Repository root and Phase 0 validation
 
 **Status:** Accepted
+
+**Clarified by:** ADR-015.
 **Date:** 2026-10-16
 
 ### Decision
@@ -129,13 +133,18 @@ the repository is now on `master` with `origin/master` configured. Statements
 above about pending Git initialization describe the state when those ADRs were
 written, not the current repository state.
 
-The six decisions supplied in `docs/DECISIONS_V2_APPEND.md` are incorporated below
-as ADR-004 through ADR-009 to avoid reusing existing identifiers. These decisions
+The six decisions from the former Documentation v2 import appendix are incorporated
+below as ADR-004 through ADR-009. The appendix was removed after verifying all its
+unique content was merged; this log is the only decision source. These decisions
 describe future capabilities and do not authorize implementation of another phase.
+Documentation v2.1 adds ADR-010 through ADR-016, superseding weaker historical
+lifecycle, AI-authority and scheduler language where explicitly indicated.
 
 ## ADR-004 — Observation/research autonomy is separate from execution authority
 
 **Status:** Accepted
+
+**Clarified by:** ADR-012.
 
 **Date:** 2026-10-16
 
@@ -153,7 +162,7 @@ Schedulers and AI agents cannot gain broker write authority merely because they 
 
 ## ADR-005 — Strategies use a governed lifecycle
 
-**Status:** Accepted
+**Status:** Superseded by ADR-012; original decision text retained for history.
 
 **Date:** 2026-10-16
 
@@ -171,7 +180,7 @@ Signals/results become traceable, losing outcomes are preserved, and no strategy
 
 ## ADR-006 — AI is advisory, not the deterministic trading engine
 
-**Status:** Accepted
+**Status:** Superseded by ADR-011; original decision text retained for history.
 
 **Date:** 2026-10-16
 
@@ -191,7 +200,7 @@ Initial strategies use explicit, testable inputs such as returns, moving average
 
 ## ADR-008 — Scheduler starts simple and becomes durable only when justified
 
-**Status:** Accepted
+**Status:** Superseded by ADR-014; original decision text retained for history.
 
 **Date:** 2026-10-16
 
@@ -208,3 +217,169 @@ Use a simple in-process scheduler during local research if sufficient. Introduce
 ### Decision
 
 Select a maintained decimal-safe TypeScript library before financial normalization begins. Phase 1 must compare alternatives, choose one, document rounding rules, and add tests.
+
+## ADR-010 — Broker-write phase gate and authenticated data boundary
+
+**Status:** Accepted
+
+**Date:** 2026-10-17
+
+### Context
+
+Documentation v2 ambiguously prohibited only reachable production writes and deferred some authentication until exposure beyond loopback.
+
+### Decision
+
+Before Phase 9 is explicitly approved, NO broker-write code may exist, including sandbox AND production. `packages/execution` must remain ABSENT, not merely disabled. Research and paper-trading code must never call broker write endpoints of any kind, even after an execution phase exists. Paper trading is entirely internal simulation with no IOL writes or sandbox orders.
+
+Phase 9 requires explicit user approval and threat-model review BEFORE sandbox-only broker-write implementation. Production requires separate Phase 10 approval and threat-model review. Automated tests must NEVER call production trading endpoints. Future authorized execution requires deterministic validation/risk checks, preview, explicit human confirmation, expiry/exact binding, fail-closed authorization, idempotency, immutable audit and an emergency kill switch; never blindly retry orders.
+
+ADR-002's authentication requirement is retained and clarified: authentication AND authorization must precede introduction of financial/account endpoints, including localhost/loopback. Public liveness remains non-sensitive.
+
+### Consequences
+
+This clarifies ADR-002/ADR-004 without granting execution authority. Sandbox is not an exception to the pre-Phase-9 code prohibition. Documentation, deployment, research and strategy eligibility do not authorize a new phase.
+
+## ADR-011 — Zero AI risk or execution authority
+
+**Status:** Accepted; supersedes ADR-006.
+
+**Date:** 2026-10-17
+
+### Decision
+
+AI has NO authority over account permissions, execution permissions, hard portfolio/risk limits, position sizing constraints, order validity, confirmation, or real-money execution. Only deterministic code and explicit human authorization control these capabilities; neither joint nor delegated AI authority is permitted.
+
+AI may only advise, critique, explain, or veto/escalate a recommendation. Its veto is advisory and must never block the emergency kill switch or risk-reducing user actions. Such actions remain subject to deterministic controls, explicit human authorization and approved phase boundaries; no write bypass is created.
+
+### Consequences
+
+Models cannot authorize their own outputs, modify protected capabilities, promote strategies, or receive any secrets. Consensus does not create authority.
+
+## ADR-012 — Human-controlled strategy promotion
+
+**Status:** Accepted; supersedes ADR-005 and clarifies ADR-004 autonomy.
+
+**Clarified by:** ADR-017 (deterministic rejection replaces only the historical exclusive-human rejection restriction; promotion gates remain unchanged).
+
+**Date:** 2026-10-17
+
+### Decision
+
+`IDEA -> SPECIFIED -> BACKTESTED -> VALIDATION_PENDING -> VALIDATED -> PAPER_TRADING -> REVIEW_PENDING -> REVIEWED -> ELIGIBLE_FOR_HUMAN_APPROVAL`
+
+Additional states: `REJECTED`, `SUSPENDED`, `RETIRED`.
+
+Autonomous research may reach BACKTESTED / VALIDATION_PENDING. A HUMAN is required to promote to VALIDATED and for EVERY promotion after VALIDATED, including PAPER_TRADING, REVIEW_PENDING, REVIEWED and ELIGIBLE_FOR_HUMAN_APPROVAL. Agents may recommend promotion but cannot perform it; deterministic application code enforces recorded human authorization.
+
+Every transition is auditable with actor, authorization, previous/new state, strategy version, UTC time, reason and evidence. Deterministic safety controls may suspend unsafe operation without waiting for an AI opinion. Humans control rejection, retirement and resumption; agents only recommend. Resumption never bypasses human promotion gates; retirement is terminal for that version.
+
+Strategy edits create a new version at IDEA or SPECIFIED without inherited approval. Preserve prior versions, evidence, signals and outcomes.
+
+### Consequences
+
+Autonomous research cannot certify its own results. After human entry into PAPER_TRADING, simulation may run within approved limits; later promotions still require humans. Eligibility is not execution permission.
+
+## ADR-013 — Immutable research evidence and Argentine-market realism
+
+**Status:** Accepted; supplements ADR-007 and ADR-009.
+
+**Date:** 2026-10-17
+
+### Decision
+
+Raw observations are append-only. Corrections create provenance-linked records, corrected/normalized datasets are versioned, and backtests reference immutable dataset versions. Maintain source/provider timestamp, exchange timestamp, ingestion timestamp and "information available at" timestamp; historical decisions use actual information availability. Define staleness policies per instrument/data class. Never silently manufacture/backfill real-time observations; late historical imports are separately labeled/versioned.
+
+Historical LLM-generated features are forbidden from ordinary backtests unless the exact model and data available at the historical instant can be reproduced without future knowledge. Default AI/news/LLM-derived feature evaluation is prospective forward/paper testing, not retrospective.
+
+Instrument identity distinguishes ticker/security, market, currency, settlement term, and relevant security/CEDEAR/bond identity. AL30, AL30D and AL30C are not interchangeable observations. Every performance result declares return basis/currency, such as ARS nominal, USD MEP, USD CCL or real/inflation-adjusted terms, and uses compatible benchmarks with explicit timestamped conversions.
+
+Treat dividends, splits, CEDEAR ratio changes, bond coupons, amortizations, accrued interest where relevant, and adjusted/unadjusted prices explicitly. Model bid/ask, spreads, slippage, liquidity/volume, settlement, market hours, halts/suspensions, and commissions/taxes where applicable. Spread/slippage handling is MANDATORY for local/BYMA instruments; missing inputs must be disclosed, never silently treated as zero.
+
+Persist EVERY backtest run, including discarded/failed variants, and parameter searches. Do not erase failed experiments. Protect holdout/out-of-sample data from repeated optimization and record access/reuse. Address look-ahead and survivorship bias with point-in-time universes and delisted/inactive instruments where available; disclose coverage, sample-size and regime limitations.
+
+### Consequences
+
+Results must be reproducible and comparable; favorable narratives cannot replace evidence. Legal/contractual retention and required deletions follow ADR-016: audit removal and mark unavailable datasets rather than silently rewriting history.
+
+## ADR-014 — Early collector and bounded scheduler operations
+
+**Status:** Accepted; supersedes ADR-008.
+
+**Date:** 2026-10-17
+
+### Decision
+
+Phase 2 provides secured persistence and portfolio intelligence; Phase 2.5 starts minimal read-only collection soon afterward, BEFORE long prospective paper research. Phase 6 matures autonomous research orchestration. An in-process local collector is sufficient initially; add durable queue/workers only when justified for dependable operation.
+
+Job idempotency key = job type + scope/instrument + scheduled time slot, or an equivalent documented natural key. Apply unique database constraints where appropriate, overlap locks/single-runner protection and atomic deduplication. A duplicate signal must not create duplicate paper trades.
+
+Record missed runs, retries and observable failures. Missing real-time observations are gaps, not silently reconstructed snapshots. Jobs require bounded timeouts, safe idempotent retries, rate-limit awareness, market calendar/timezone, a scheduler kill switch, and explicit AI-call cost/token budgets before scheduled model calls in their approved phase.
+
+### Consequences
+
+Real forward data accumulates early. Scheduling grants neither strategy promotion nor broker-write authority. Off-machine/24/7 deployment has a separate mandatory security gate under ADR-016.
+
+## ADR-015 — Staged secret scan without local hooks
+
+**Status:** Accepted; clarifies and retains ADR-003's no-local-hooks decision.
+
+**Date:** 2026-10-17
+
+### Decision
+
+A future local staged-file secret scan is a manually invoked command that reads the staged index without staging, rewriting, or unstaging files. Retain Gitleaks CI. Do not install hooks or modify Git hook configuration, including through dependency-install scripts.
+
+### Consequences
+
+This resolves the staged-scanning plan without changing the no-hooks policy; no supersession of that restriction is needed. Any future hook policy requires an explicit user-approved superseding ADR before implementation. This documentation task installs no scanning command or hook.
+
+## ADR-016 — Security restoration, data terms and deployment gate
+
+**Status:** Accepted; supplements ADR-002/ADR-003 and all future phases.
+
+**Clarified by:** ADR-017 (explicit user approval for sensitive AI prompt/response persistence).
+
+**Date:** 2026-10-17
+
+### Decision
+
+NEVER put ANY secret in an LLM prompt. Minimize/redact account identifiers and sensitive personal financial identifiers before model calls where possible. Never log complete IOL responses that may contain sensitive account data. Do not persist full prompts/responses containing sensitive portfolio data unless explicitly required and protected.
+
+Never invent undocumented IOL behavior. Mark unknown behavior UNKNOWN and verify against official documentation or authorized read-only sandbox interaction before implementation; this does not permit pre-Phase-9 writes. Agents may never silently weaken/change the security model. Business/risk rules must be testable without network access. If any required validation cannot run, the agent must say which check and why.
+
+Before market-data persistence or redistribution, check current IOL/provider terms for storage, historical retention and redistribution, recording permitted uses and unresolved restrictions. Persistence requires least privilege, access controls, encryption at rest where supported, secure backups/recovery, retention rules and data minimization. Required deletions must be audited and affected dataset versions marked unavailable, never silently rewritten or selectively erased to conceal failed research.
+
+Authorization fails closed. Sensitive schemas reject unexpected fields where practical; use OAuth state/PKCE and CSRF where applicable. Pin/lock dependencies, review major upgrades and retain vulnerability scanning.
+
+Moving broker credentials or financial data off the local machine is a security-boundary change. BEFORE deployment, including 24/7 operation, require explicit user approval, threat-model review, credential/secrets plan, database security, backup/recovery, network exposure review and monitoring. This gate applies whenever hosting is proposed, not only after Phase 6. Deployment never grants broker-write permissions; Phase 9 and Phase 10 retain their own separate approval/threat-model gates.
+
+### Consequences
+
+Early collection remains local until deployment is explicitly approved. Operational readiness does not authorize financial writes. AGENTS.md governs policy; accepted ADRs govern architecture; MASTER_PLAN.md remains subordinate operational guidance.
+
+## ADR-017 — Credential containment and final policy clarifications
+
+**Status:** Accepted; supplements ADR-010, clarifies ADR-012 and ADR-016.
+
+**Date:** 2026-10-17
+
+### Context
+
+The final independent-review cleanup requires explicit provider-scope verification, user approval for sensitive AI persistence, and deterministic rejection without granting automated promotion. Existing accepted decision text is retained as history, with clarification pointers.
+
+### Decision
+
+Broker read and write permissions/scopes must be separated whenever the provider supports it. Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes; the answer remains UNKNOWN until verified. If unavailable, treat the token as write-capable even if the adapter is read-only. Until verified otherwise, unknown capability is treated as write-capable too.
+
+In that case isolate the token strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and add automated tests enforcing it. Never pass the credential/token to scheduler, AI, MCP, trading research, or a generic HTTP client. No other package may obtain direct broker credentials. Future write credentials must be separate from read credentials whenever possible. No containment rule authorizes broker-write code before approved Phase 9.
+
+Full AI prompts/responses containing sensitive portfolio information may be persisted only when the requirement is explicitly approved by the user and the data is protected. An agent or model cannot approve that requirement. This clarifies ADR-016; all secret, minimization, access and retention safeguards remain in force.
+
+Deterministic automation MAY move a strategy to REJECTED when objective rejection criteria fail. Record criteria, evidence and the audited transition. This replaces only ADR-012's historical exclusive-human rejection restriction; humans may also reject strategies. AI recommendations do not authorize deterministic transitions. Automation may NOT promote beyond BACKTESTED / VALIDATION_PENDING. Human approval remains mandatory for VALIDATED and every later promotion, as well as resumption. Rejection cannot be used to bypass those gates.
+
+### Consequences
+
+Research may be autonomous within an approved phase. Paper trading may run autonomously only within an approved phase and for a human-approved strategy state. Real-money execution may not be autonomous. All existing phase and execution prohibitions remain intact.
+
+Documentation v2.1 is adopted as canonical after independent review and user acceptance. AGENTS.md remains authoritative for policy, accepted non-superseded ADRs for architecture, and MASTER_PLAN.md for subordinate operational sequencing. This adoption does not authorize another implementation phase.

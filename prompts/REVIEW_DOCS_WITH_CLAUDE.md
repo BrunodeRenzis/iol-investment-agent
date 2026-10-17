@@ -1,9 +1,20 @@
-Review the documentation-only v2 change.
+Review the documentation-only v2.1 policy correction.
 
-Read `AGENTS.md` and `CLAUDE.md` first. Inspect `git status` and the documentation diff.
+Read in canonical order:
 
-Do not modify files. Do not commit or push.
+1. `AGENTS.md`
+2. `CLAUDE.md` when applicable (when using Claude)
+3. `docs/PROJECT.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/SECURITY.md`
+6. `docs/IMPLEMENTATION_PLAN.md`
+7. `docs/ROADMAP.md`
+8. `docs/DECISIONS.md`
+9. `docs/WORKFLOW.md`
+10. `docs/MASTER_PLAN.md`
 
-Review for contradictions between README/AGENTS/PROJECT/ARCHITECTURE/SECURITY/IMPLEMENTATION_PLAN/ROADMAP/WORKFLOW/DECISIONS; accidental weakening of the no-autonomous-execution policy; ambiguous research/execution boundaries; missing backtesting safeguards; market-data integrity gaps; scheduler/idempotency issues; overly broad AI authority; roadmap ordering problems; stale Phase 0 claims; duplicate/conflicting ADR numbering; and docs that imply intended packages already exist.
+Inspect Git status and the documentation diff. Do not edit, stage, commit, push, merge, reset or rebase.
 
-Return blockers, important findings, optional improvements, and whether documentation v2 is internally consistent and safe to use as the canonical project plan.
+Check consistency of phase gates (including sandbox), execution-package absence before Phase 9, internal-only paper simulation, zero AI authority/advisory veto limits, authentication before local financial endpoints, complete secret/persistence/security rules, human-controlled strategy promotion, historical AI leakage, Argentine-market identity/return basis/adjustments/trading realism, survivorship and holdout discipline, immutable evidence and failed-run preservation, Phase 2.5 collection, scheduler idempotency/kill switch/cost budgets, deployment approval, IOL data terms, explicit ADR supersession and no-hooks policy, and matching canonical reading lists. Intended packages must not be presented as implemented.
+
+Return blockers, important findings, optional improvements, validation run or reasons it could not run, and whether the documentation is consistent and safe for user acceptance as canonical.
