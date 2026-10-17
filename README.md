@@ -7,7 +7,9 @@ A secure, auditable personal investment platform integrating IOL data with syste
 **Phase 0 complete: secure local backend foundation.**
 
 Phase 1 Step 1 adds repository hardening only: manual staged secret scanning,
-targeted secret ignores, and explicit test discovery. Later steps remain pending.
+targeted secret ignores, and explicit test discovery. Step 2 adds offline,
+broker-independent financial primitives in `packages/financial` using pinned
+bignumber.js 11.1.5 (ADR-019). Step 3 and later remain pending.
 
 Documentation v2.1 is adopted as canonical after independent review. Operational plans remain subordinate to `AGENTS.md` for policy and accepted, non-superseded ADRs in `docs/DECISIONS.md` for architecture. Future implementation begins only with a user-selected step in financial foundations and **read-only IOL integration**.
 
@@ -97,6 +99,7 @@ apps/
   api/              HTTP composition root
 
 packages/
+  financial/        Decimal-safe domain values, percentages and directional FX
   iol/              IOL transport/auth/read-only adapters
   market-data/      normalized quotes/bars/observations
   portfolio/        balances, positions, snapshots, P&L
@@ -109,6 +112,10 @@ packages/
 ```
 
 Not every package exists yet. They are introduced incrementally by the roadmap.
+
+See [financial primitive semantics](packages/financial/README.md) for string-only
+inputs, supported currencies, arithmetic limits, JSON shapes and explicit rounding
+policies. No IOL adapter or financial HTTP endpoint is implemented by Step 2.
 
 ## Strategy lifecycle
 

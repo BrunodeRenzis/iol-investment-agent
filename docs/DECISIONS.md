@@ -210,7 +210,7 @@ Use a simple in-process scheduler during local research if sufficient. Introduce
 
 ## ADR-009 — Financial calculations require decimal-safe arithmetic
 
-**Status:** Proposed
+**Status:** Superseded/resolved by accepted ADR-019; original proposed decision text retained.
 
 **Date:** 2026-10-16
 
@@ -427,3 +427,100 @@ CI and careful handling of secrets; it cannot guarantee secret absence.
 Targeted ignores cover Ed25519/ECDSA/DSA private-key names, PuTTY private keys,
 token text files and secret YAML suffixes without ignoring ordinary YAML or source
 files. No part of this decision authorizes later Phase 1 steps or broker writes.
+
+## ADR-019 — Broker-independent exact financial primitives
+
+**Status:** Accepted; resolves and supersedes ADR-009 without rewriting its original decision.
+
+**Date:** 2026-10-17
+
+### Context and alternatives
+
+Phase 1 Step 2 needs decimal-safe domain values before any broker normalization.
+Candidate comparison used official APIs, changelogs and npm metadata, inspected
+2026-10-17. Release activity is evidence of maintenance, not a guarantee; all three
+are mature MIT-licensed libraries with no runtime dependencies.
+
+| Candidate           | Precision / rounding                                                                                                                        | TypeScript / footprint                                                                                         | Assessment                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| decimal.js 10.6.0   | Significant-digit precision rounds arithmetic results, including addition/multiplication; nine rounding modes.                              | Bundled declarations; broader scientific/transcendental API. npm unpacked size 284,347 bytes.                  | Strong general calculator, but preventing silent ordinary-arithmetic rounding requires additional precision management. Latest published version 2025-07-06.                                         |
+| big.js 7.0.1        | Exact addition/subtraction/multiplication; decimal-place limits for division-like operations; four rounding modes.                          | Smallest candidate; npm unpacked size 58,948 bytes; no bundled declarations (needs external TypeScript types). | Simple financial API and useful strict input/conversion mode; lacks explicit ceiling/floor rounding modes. Changelog release 2025-04-21, with CI and prior strict-mode fixes.                        |
+| bignumber.js 11.1.5 | Exact addition/subtraction/multiplication; decimal-place settings affect division-like operations; nine rounding modes and isolated clones. | Bundled CommonJS/ESM declarations; npm unpacked size 500,493 bytes including multiple distributions/types.     | Best match for exact basic arithmetic, explicit boundary rounding and TypeScript without an extra type package. Latest published version 2026-07-05; 2026 changes include typed API tests and fixes. |
+
+All support string construction, decimal comparison/equality methods and explicit
+formatting; ordinary JS object equality is identity, not numerical equality.
+All can expose JS-number conversions, so none alone enforces our domain policy.
+Their permissive parsing/notation and JSON defaults also need a controlled wrapper.
+All can represent money, FX, percentages, prices, nominal values and fees; none
+supplies currency/unit semantics. npm unpacked sizes are installation footprint,
+not measured runtime memory or minified bundle size. No browser bundler or
+performance claim is introduced; correctness is decisive.
+
+Primary references:
+
+- [decimal.js README](https://github.com/MikeMcl/decimal.js) and [API](https://mikemcl.github.io/decimal.js/).
+- [big.js README](https://github.com/MikeMcl/big.js), [API](https://mikemcl.github.io/big.js/) and [7.0.1 changelog](https://github.com/MikeMcl/big.js/blob/v7.0.1/CHANGELOG.md).
+- [bignumber.js API](https://mikemcl.github.io/bignumber.js/) and [11.1.5 changelog](https://github.com/MikeMcl/bignumber.js/blob/v11.1.5/CHANGELOG.md).
+- Official npm metadata via `npm view <package>@<version> dist.unpackedSize types dependencies --json` and `npm view <package> version time --json`.
+
+### Decision
+
+Pin `bignumber.js` **11.1.5** as the sole runtime dependency of a new
+`packages/financial` / `@iol-agent/financial` workspace. This is a focused,
+broker-independent shared domain boundary, added incrementally to the intended
+layout. It does not belong in `packages/iol`, and no financial HTTP route or broker
+adapter is introduced. Build JavaScript and declarations with the existing `tsc`.
+Expose only Currency, parseCurrency, Money, Price, Quantity, NominalValue, Percentage,
+FxRate and the explicit rounding policy/modes at the package root. Keep shared
+decimal internals private; no generic public DecimalValue or raw library export.
+
+Use an isolated library clone and exact addition/subtraction/multiplication and
+decimal shifts. Accept only validated plain decimal strings: reject JS numbers,
+scientific notation, whitespace, malformed/non-finite input and alternate bases.
+Bound inputs and results to 100 integer digits and 100 fractional digits; reject
+excess rather than silently round. No JS binary floating point for critical
+arithmetic. JS numeric metadata (comparison signs/scale counts) is permitted.
+Immutable values reject implicit coercion and provide no `toNumber` API.
+
+Currency initially supports only ARS/USD. Money is signed; Price, Quantity and
+NominalValue are non-negative, including zero/fractions. Quantity is currency-free;
+NominalValue represents face units and is not share quantity. Instrument currency,
+denomination/price basis and tick constraints remain later metadata. Same-currency
+Money arithmetic/comparison and Price comparison reject mismatch, including
+equality; no implicit FX. Percentage stores a ratio with distinct `fromPercent`
+and `fromRatio` factories: 5% = 0.05. Negative and >100% percentages are allowed
+mathematically; this grants no risk permissions. `applyTo(Money)` returns just the
+percentage amount. FX explicitly means quote units per one base unit; USD/ARS 1450
+means 1 USD = 1450 ARS. Conversion requires base-currency Money. No inferred rate,
+inverse, division, lookup, price-times-quantity rule or market identification.
+
+Rounding is always an explicit boundary choice. `format({ decimalPlaces, mode })`
+produces display text without changing the object; `round(...)` returns a new
+same-domain value for a verified boundary. Require both scale (0..100) and one of
+nine named modes; no universal two-decimal scale or settlement default. No
+intermediate rounding. Cash settlement rules and provider/tick precision remain
+UNKNOWN until verified IOL/market metadata. A future division API must first define
+its non-terminating-result precision and rounding contract.
+
+Serialization uses fresh plain JSON records with decimal **strings**, currency
+and FX direction as appropriate, no exponent, no insignificant trailing zeros,
+and normalized `"0"`. Provider numerical precision is retained within the bounds;
+original textual scale is not. Preserve that separately in later provenance when
+needed. See `packages/financial/README.md` for the complete type/JSON conventions
+and examples; the policy in this ADR is authoritative.
+
+### Consequences and tradeoffs
+
+The wrapper prevents accidental number inputs, currency mixing, implicit numeric
+coercion and cross-domain substitution. Type and runtime tests enforce those
+boundaries and run without network/database/provider access. The exact arithmetic
+model avoids silent rounding but rejects out-of-range results and deliberately
+omits division/inversion until a precision contract is needed. This means the
+API is intentionally narrower than the decimal library.
+
+bignumber.js has a larger installed distribution than big.js and a shared upstream
+maintainer concentration with the other candidates. Pinning, lockfile review,
+offline regression tests and vulnerability scanning remain required. No claim is
+made that these primitives encode IOL/BYMA validity, settlement, FX market basis,
+fees/taxes or permissions. Those await verified contracts and separately selected
+steps. All pre-Phase-9 prohibitions remain in force.

@@ -104,6 +104,7 @@ Start as a modular monolith. Avoid premature microservices.
 The following package/domain layout is INTENDED and introduced incrementally by the roadmap; it does not describe packages that all exist today:
 
 - `apps/api`: HTTP composition root and user-facing API.
+- `packages/financial`: broker-independent decimal-safe financial value objects (Phase 1 Step 2, ADR-019).
 - `packages/iol`: read-only broker integration until an approved execution phase.
 - `packages/market-data`: normalized observations and time-series contracts.
 - `packages/portfolio`: normalized positions, balances, snapshots, and P&L.
@@ -144,7 +145,7 @@ An in-process collector is acceptable locally. Dependable 24/7 operation needs d
 - No `any` unless justified.
 - Prefer `unknown` plus validation.
 - Never use naïve binary floating-point for money, nominal values, FX, accrued interest, fees, or risk-limit arithmetic.
-- Choose and document a decimal strategy before financial normalization.
+- Use ADR-019's decimal strategy in `packages/financial`: pinned bignumber.js behind explicit domain types, string-only inputs, exact bounded arithmetic, and explicit rounding boundaries. No raw library or JS-number conversion in the public API.
 - Currency, nominal, quantity, price, and percentage are distinct concepts.
 - Never infer an FX rate.
 - Define rounding explicitly.

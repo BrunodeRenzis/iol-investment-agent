@@ -11,7 +11,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@iol-agent/api",
+    "build": "npm run build --workspace=@iol-agent/financial && npm run build --workspace=@iol-agent/api",
     "start": "node --env-file-if-exists=.env apps/api/dist/main.js",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",

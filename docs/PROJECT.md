@@ -19,7 +19,7 @@ One personal account initially. Multi-user SaaS behavior is out of scope until e
 - TypeScript
 - NestJS
 - PostgreSQL when persistence begins
-- a decimal-safe arithmetic library chosen via ADR
+- bignumber.js 11.1.5 behind broker-independent financial value objects (ADR-019)
 - official IOL API and/or official IOL MCP where appropriate
 - MCP for narrow internal tools
 - provider-neutral OpenAI and Anthropic adapters

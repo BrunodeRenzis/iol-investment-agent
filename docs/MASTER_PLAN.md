@@ -9,7 +9,8 @@ This is the high-level operational sequence, subordinate to `AGENTS.md` for poli
 - Phase 0: complete.
 - Documentation v2.1: adopted as canonical after independent review and user acceptance; operational plans remain subordinate to AGENTS.md and accepted ADRs.
 - App remains read-only, with no broker-write code, execution package, MCP or AI runtime.
-- Phase 1 Step 1: repository hardening implemented; later steps remain pending. No financial capability, dependencies, packages, hooks or deployment added by Step 1.
+- Phase 1 Step 1: repository hardening implemented. No financial capability, dependencies, packages, hooks or deployment added by Step 1.
+- Phase 1 Step 2: offline financial primitives implemented in `packages/financial` (ADR-019). Step 3 and later remain pending; no broker adapter or financial endpoint introduced.
 
 ## Documentation v2.1 canonical adoption
 
@@ -35,7 +36,11 @@ Add a manually invoked staged-file secret scan without installing hooks or chang
 
 Step 1 is implemented by `npm run scan:staged`, targeted ignore patterns and the
 explicit compiled-test runner (ADR-018). Gitleaks setup is manual; see README.md.
-Step 2 and financial primitives are still pending separate scope approval.
+Step 2 is implemented with pinned bignumber.js 11.1.5 and distinct immutable value
+objects (ADR-019 resolves ADR-009). Use validated strings, exact bounded arithmetic,
+ratio percentages, explicit FX direction, string serialization and explicit
+rounding at verified boundaries. See `packages/financial/README.md` for semantics.
+Step 3 verification of IOL/market behavior remains pending separate scope approval.
 
 ### Steps 3–4: Verify contract, then implement read-only adapter
 

@@ -44,6 +44,7 @@ apps/
       research/
 
 packages/
+  financial/
   iol/
   market-data/
   portfolio/
@@ -66,6 +67,15 @@ packages/
 ```
 
 ## Domain boundaries
+
+### Financial primitives
+
+`packages/financial` is the broker-independent shared value layer introduced in
+Phase 1 Step 2 (ADR-019). It owns Currency, Money, Price, Quantity, NominalValue,
+Percentage and FxRate using a private pinned bignumber.js adapter. It has no IOL,
+NestJS, persistence or network dependency. Only domain types and explicit rounding
+policies are exported; currency/unit semantics stay separate. It is built before
+the API, but this step adds no API dependency on it or financial endpoint.
 
 ### IOL adapter
 
@@ -107,7 +117,15 @@ The package remains ABSENT until explicitly approved Phase 9 and a completed thr
 
 ## Data precision
 
-Before financial normalization, record an ADR choosing a decimal-safe arithmetic strategy. Define explicit concepts such as `Money`, `Currency`, `Price`, `Quantity`, `NominalValue`, `Percentage`, and `FxRate`. Do not use binary floating-point for critical financial arithmetic.
+ADR-019 resolves ADR-009 with bignumber.js 11.1.5 and immutable domain types in
+`packages/financial`. Inputs are validated plain decimal strings; supported
+currencies are ARS/USD, and mismatch throws. Percentage stores a ratio (5% = 0.05);
+FX means quote units per base unit, with explicit direction. Ordinary arithmetic
+is exact within 100 integer/100 fractional digits; excess is rejected. Display and
+verified settlement boundaries require explicit scale/mode, with no assumed cash
+or price precision. Serialize decimal strings with currency/direction, never JSON
+financial numbers. Do not use binary floating-point for critical arithmetic. Full
+semantics and examples: `packages/financial/README.md`; provider rules await Step 3.
 
 ## Data persistence
 

@@ -14,11 +14,20 @@ Implemented in Step 1: `npm run scan:staged` uses pinned Gitleaks against staged
 changes with redaction; setup remains explicit (README.md). Tests clean `.test-dist`,
 discover only compiled `*.test.js` under apps/packages, and fail if none exist.
 Tooling regressions cover discovery, helper exclusion, failures and scanner
-invocation. ADR-018 records these choices; Step 2 is not started.
+invocation. ADR-018 records these choices.
 
 ## Step 2 — Phase 1 financial numeric primitives
 
 Resolve proposed ADR-009, compare decimal-safe libraries, document rounding, and test explicit Currency, Money, Price, Quantity, NominalValue, Percentage and FxRate concepts. Business/risk rules must be testable offline.
+
+Implemented in Step 2: ADR-019 resolves ADR-009, comparing decimal.js, big.js and
+bignumber.js and choosing pinned bignumber.js 11.1.5 in `packages/financial`.
+Immutable domain types use ARS/USD, validated decimal strings, exact arithmetic
+with explicit resource bounds, ratio-based percentages, directional FX and string
+JSON serialization. Display/settlement rounding requires explicit scale and mode;
+provider precision and settlement rules remain unverified. Offline edge-case and
+type-separation tests accompany the public API; see `packages/financial/README.md`.
+No IOL, endpoint or other Step 3+ implementation is included.
 
 ## Step 3 — Phase 1 verify IOL contract and data terms
 
