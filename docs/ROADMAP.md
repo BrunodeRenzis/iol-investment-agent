@@ -1,83 +1,133 @@
 # Roadmap
 
-## Phase 0 — foundation
+## Phase 0 — secure foundation
 
-- [ ] Initialize Git repository.
-- [x] Initialize NestJS workspace.
-- [x] Enable TypeScript strict mode.
-- [x] Add ESLint/formatter/typecheck scripts.
-- [x] Add `.gitignore` and `.env.example`.
-- [x] Add configuration validation.
-- [x] Add health endpoint.
-- [x] Add baseline unit tests.
-- [x] Add CI that runs lint, typecheck, and tests.
-- [x] Confirm no agent auto-commits or auto-pushes.
+Status: **COMPLETE**
 
-Local checks pass. The repository root is now
-`C:\Users\Bruno\Desktop\iol-investment-agent`; Git initialization is pending
-explicit user approval. Hosted CI will run after the user creates and publishes
-the repository. Phase 1 has not started.
+- [x] NestJS foundation
+- [x] TypeScript strict mode
+- [x] health endpoint
+- [x] configuration validation
+- [x] logging/rate limiting baseline
+- [x] lint/format/typecheck/tests/build
+- [x] reproducible lockfile
+- [x] Git/GitHub repository
+- [x] Gitleaks CI
+- [x] read-only/no-trading guardrails
+- [x] repository documentation and agent constraints
 
-Exit criteria:
-- project runs locally,
-- checks pass,
-- repository policies are in place.
+## Phase 1 — financial foundations and IOL read-only
 
-## Phase 1 — IOL read-only
+- [ ] local staged-file secret scanning
+- [ ] explicit test discovery + fail on zero tests
+- [ ] tighten remaining secret-file ignore patterns
+- [ ] ADR for decimal-safe financial arithmetic
+- [ ] financial value objects
+- [ ] verify current official IOL read-only auth/integration requirements
+- [ ] typed IOL client/auth adapter
+- [ ] balances
+- [ ] portfolio
+- [ ] selected market quotes
+- [ ] normalized internal models
+- [ ] timeout/error policy
+- [ ] fixture/mock tests
+- [ ] prove no broker write interface exists
 
-- [ ] Verify official IOL authentication options and access requirements.
-- [ ] Create typed IOL HTTP client.
-- [ ] Implement safe token lifecycle.
-- [ ] Fetch account balances.
-- [ ] Fetch portfolio.
-- [ ] Fetch instrument quotes.
-- [ ] Normalize external responses into domain models.
-- [ ] Add timeout/retry policy.
-- [ ] Add adapter tests with fixtures.
-- [ ] Test against IOL sandbox or explicitly read-only access.
+## Phase 2 — persistence and portfolio intelligence
 
-Exit criteria:
-- portfolio can be read safely,
-- no write endpoint exists in application code.
+- [ ] PostgreSQL
+- [ ] portfolio snapshots
+- [ ] selected market observations
+- [ ] source/provenance/timestamps
+- [ ] duplicate/stale-data handling
+- [ ] allocation metrics
+- [ ] issuer/sector/currency exposure
+- [ ] concentration metrics
+- [ ] P&L normalization
+- [ ] deterministic portfolio risk rules
+- [ ] authenticated reporting endpoints
 
-## Phase 2 — portfolio intelligence
+## Phase 3 — trading research core
 
-- [ ] Add portfolio snapshots.
-- [ ] Add concentration metrics.
-- [ ] Add issuer/sector/currency exposure.
-- [ ] Add P&L normalization.
-- [ ] Add deterministic risk rules.
-- [ ] Add reporting endpoint.
+- [ ] `packages/trading`
+- [ ] indicator contracts + initial indicators
+- [ ] versioned strategy contract
+- [ ] signal model
+- [ ] persist strategies/versions/signals
+- [ ] outcome tracking at declared horizons
+- [ ] benchmark contracts
+- [ ] first simple explainable strategy
 
-## Phase 3 — MCP read-only
+## Phase 4 — reproducible backtesting
 
-- [ ] Implement authenticated MCP server.
-- [ ] Expose narrow read-only tools.
-- [ ] Connect Codex/ChatGPT.
-- [ ] Connect Claude.
-- [ ] Validate that no credentials enter model context.
-- [ ] Add MCP audit metadata.
+- [ ] reproducible dataset loader
+- [ ] transaction-cost model
+- [ ] slippage model where relevant
+- [ ] look-ahead protection
+- [ ] in-sample/out-of-sample support where relevant
+- [ ] return/drawdown/hit-rate/profit-factor/risk-adjusted metrics
+- [ ] benchmark comparison
+- [ ] persist backtest runs
+- [ ] strategy promotion criteria
 
-## Phase 4 — AI analysis
+## Phase 5 — paper trading
 
-- [ ] Add provider-neutral AI interface.
-- [ ] Add OpenAI adapter.
-- [ ] Add Anthropic adapter.
-- [ ] Add structured-output schemas.
-- [ ] Add consensus/disagreement reporting.
-- [ ] Keep AI advisory only.
+- [ ] paper account model
+- [ ] simulated fills
+- [ ] fees/slippage assumptions
+- [ ] reuse strategy/risk interfaces
+- [ ] open/closed paper positions
+- [ ] paper P&L
+- [ ] evaluation reports
+- [ ] compare paper results with backtests
 
-## Phase 5 — sandbox order proposals
+## Phase 6 — scheduler / autonomous observation
 
-- [ ] Implement order proposal model.
-- [ ] Implement deterministic risk validation.
-- [ ] Implement preview.
-- [ ] Implement explicit confirmation state machine.
-- [ ] Test only in sandbox.
-- [ ] Add idempotency and audit trail.
+- [ ] `packages/scheduler`
+- [ ] market calendar/timezone policy
+- [ ] idempotent market-data jobs
+- [ ] portfolio snapshot jobs
+- [ ] strategy-evaluation jobs
+- [ ] paper-trading update jobs
+- [ ] daily research summary
+- [ ] weekly strategy-performance review
+- [ ] job metadata/failure reporting
+- [ ] decide when durable queue/worker infrastructure is justified
 
-## Phase 6 — optional production execution
+## Phase 7 — read-only MCP
 
-Do not start automatically.
+- [ ] authenticated MCP server
+- [ ] portfolio/balance/quote/exposure tools
+- [ ] recent-signal/performance tools
+- [ ] confirm broker secrets never enter model context
+- [ ] MCP audit metadata
 
-Requires an explicit user decision and a dedicated security review.
+## Phase 8 — AI advisory committee
+
+- [ ] provider-neutral AI contracts
+- [ ] OpenAI adapter
+- [ ] Anthropic adapter
+- [ ] structured output schemas
+- [ ] independent-analysis mode
+- [ ] disagreement/consensus report
+- [ ] news/fundamental pipeline when reliable sources exist
+- [ ] evaluate whether AI commentary adds measurable value
+
+## Phase 9 — sandbox order proposal system
+
+Requires explicit user approval before starting.
+
+- [ ] normalized order proposal
+- [ ] deterministic risk checks
+- [ ] preview
+- [ ] confirmation state machine
+- [ ] confirmation expiry
+- [ ] exact-match validation
+- [ ] idempotency
+- [ ] immutable audit events
+- [ ] emergency kill switch
+- [ ] sandbox-only execution
+
+## Phase 10 — optional production execution
+
+Do not start automatically. Requires explicit user decision, dedicated security review, operational runbook, production credential isolation, kill-switch testing, acceptable sandbox evidence, and a narrow definition of what can/cannot be automated.

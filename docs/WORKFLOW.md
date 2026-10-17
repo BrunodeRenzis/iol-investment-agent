@@ -1,52 +1,39 @@
 # Codex + Claude workflow
 
-## Recommended default
+## Default roles
 
-Use one agent as the implementer and the other as reviewer.
+- **Codex:** primary implementation agent
+- **Claude:** independent reviewer/adversarial checker
 
-For the initial project:
-- **Codex: primary implementer**
-- **Claude: independent reviewer**
+Roles may be swapped per task. The purpose is to prevent overlapping edits and create a repeatable review loop.
 
-This is not because one model is universally better. It prevents both agents from making overlapping edits and gives the project a repeatable review loop.
+## Standard loop
 
-## Loop
+1. User selects one implementation step.
+2. Codex reads canonical docs and implements only that scope.
+3. Codex runs checks.
+4. No commit is made.
+5. Claude reviews the diff and relevant tests.
+6. User chooses findings to accept.
+7. Codex or Claude applies targeted fixes.
+8. Checks run again.
+9. User reviews `git diff`.
+10. User commits manually.
 
-1. Give Codex one scoped implementation task.
-2. Codex edits and runs checks.
-3. Do not commit yet.
-4. Give Claude the diff/repo and ask for review only.
-5. Review findings.
-6. Ask Codex (or Claude, explicitly) to fix selected findings.
-7. Run checks again.
-8. User reviews `git diff`.
-9. User commits manually.
+## Review specialization
+
+Ask Claude to be particularly adversarial for security changes, authentication, broker integration, financial arithmetic, backtesting correctness, look-ahead/data leakage, scheduler concurrency, idempotency, and future order flows.
+
+Ask Codex to be particularly explicit about changed files, tests, architectural deviations, migration effects, and public interfaces.
 
 ## Parallel work
 
-Only after the repo is stable.
+Do not parallelize until boundaries are stable. When useful, use different branches/worktrees and assign non-overlapping packages. Never have both agents modify the same files concurrently.
 
-If parallelizing:
-- use different branches/worktrees;
-- assign non-overlapping modules;
-- never have both agents editing the same file set concurrently.
+## Repository context
 
-Example:
-- worktree A: `feature/iol-auth`
-- worktree B: `feature/risk-engine`
+New agent sessions should read `AGENTS.md`, `CLAUDE.md` when using Claude, `docs/PROJECT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, and `docs/DECISIONS.md`.
 
-## Who should do what?
+## Commit discipline
 
-Codex is a good default for:
-- repo-aware implementation,
-- test-driven changes,
-- targeted refactors,
-- code review/fixes.
-
-Claude is useful for:
-- independent architecture review,
-- long-context consistency checks,
-- adversarial security review,
-- alternative implementation proposals.
-
-Swap roles whenever useful, but always state the role in the prompt.
+Agents do not commit by default. They may suggest Conventional Commit messages. The user performs the commit unless a single explicit Git action is authorized for that turn.

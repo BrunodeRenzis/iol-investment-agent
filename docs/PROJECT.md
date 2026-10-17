@@ -2,64 +2,72 @@
 
 ## Goal
 
-Build a personal investment-assistant platform that can securely read the user's IOL account, normalize portfolio/market data, calculate portfolio risk, and expose selected capabilities to AI assistants.
+Build a personal investment platform that can securely read IOL account data, collect market observations, analyze the portfolio, research measurable trading strategies, paper-trade them, and expose selected capabilities to AI assistants.
 
-The project should eventually support ChatGPT/Codex and Claude through a shared backend/MCP layer, while keeping sensitive credentials and execution authority outside the language models.
+The long-term system may prepare real-money orders, but no model may independently authorize or execute them.
+
+## Product identity
+
+This is not merely "a chatbot connected to IOL." It is a personal market-intelligence system, portfolio analytics engine, systematic strategy research environment, backtesting and paper-trading platform, AI-assisted investment research layer, and future human-approved execution interface.
 
 ## Primary user
 
-One personal account initially. Multi-user support is out of scope for the first versions.
+One personal account initially. Multi-user SaaS behavior is out of scope until explicitly introduced.
 
 ## Initial stack
 
 - TypeScript
 - NestJS
-- PostgreSQL when persistence is needed
-- Official IOL API and/or official IOL MCP where appropriate
-- MCP server for selected internal tools
-- OpenAI and Anthropic adapters only after the deterministic core is stable
-- Git for version control
+- PostgreSQL when persistence begins
+- a decimal-safe arithmetic library chosen via ADR
+- official IOL API and/or official IOL MCP where appropriate
+- MCP for narrow internal tools
+- provider-neutral OpenAI and Anthropic adapters
+- GitHub Actions
+- Gitleaks
 
-## Non-goals for V1
-
-- Autonomous trading
-- High-frequency trading
-- Algorithmic execution without confirmation
-- Portfolio optimization based solely on LLM output
-- Social/copy trading
-- Multi-broker support
-- Mobile app
-- Microservices
-- Production write access to IOL
+Scheduler/worker infrastructure should start simple and become durable only when 24/7 operation requires it.
 
 ## Product principles
 
-1. Read first, write much later.
-2. Human approval for financial actions.
-3. Deterministic risk rules before model recommendations.
-4. Full auditability.
-5. Minimum privilege.
-6. Provider independence: OpenAI/Anthropic should be replaceable adapters.
-7. Financial values must be precise and explicit.
-8. The repo and documentation are the shared memory across agents.
+1. Read first; write much later.
+2. The repository is the shared memory between AI coding agents.
+3. Observation and research are independent from execution.
+4. Deterministic risk rules take precedence over LLM opinions.
+5. Strategies must be measurable and reproducible.
+6. Backtests must account for bias and realistic trading assumptions.
+7. Paper trading precedes any consideration of real execution.
+8. Human approval is mandatory for real financial actions.
+9. Full auditability.
+10. Minimum privilege.
+11. External providers remain replaceable adapters.
+12. Financial values must be precise and explicit.
 
-## V1 user stories
+## V1 scope
 
-- As a user, I can authenticate securely with IOL in read-only mode.
-- As a user, I can retrieve my balances and portfolio.
-- As a user, I can see normalized positions independent of IOL's raw schema.
-- As a user, I can retrieve a quote for an instrument.
-- As a user, I can calculate concentration by asset, issuer, currency, and asset class.
-- As a user, I can inspect historical snapshots of my portfolio after persistence is introduced.
-- As a user, I can ask an AI assistant to analyze the normalized read-only data without exposing IOL credentials to the model.
+V1 is read-only and research-oriented. The user can securely retrieve balances and portfolio from IOL, retrieve normalized market quotes, inspect normalized positions, persist portfolio snapshots, persist selected market observations, calculate concentration/exposure, inspect basic technical indicators, evaluate strategy signals without real execution, and ask AI assistants to analyze normalized data without receiving broker secrets.
 
-## Success criteria for first milestone
+## Trading research scope
 
-The backend can:
-- start locally,
-- authenticate against a safe IOL environment or read-only production access,
-- fetch portfolio data,
-- normalize it,
-- expose it through a local authenticated endpoint,
-- pass tests,
-- contain no real-order execution path.
+The trading research subsystem will support indicator calculation, versioned strategies, generated signals, historical evaluation, benchmark comparison, backtesting, paper trading, and outcome tracking at defined horizons.
+
+Initial strategies should be simple and explainable before complex AI-driven approaches are attempted.
+
+## Explicit non-goals for early phases
+
+- autonomous real-money trading
+- high-frequency trading
+- ultra-low-latency execution
+- hidden/black-box strategy promotion
+- multi-broker routing
+- copy/social trading
+- portfolio optimization controlled solely by an LLM
+- microservices without an operational need
+
+## Success criteria for the read-only foundation
+
+The backend can run locally, authenticate safely with IOL in an approved read-only configuration, fetch balances/portfolio/selected quotes, normalize responses into explicit domain models, persist selected observations safely, expose authenticated read-only endpoints, pass automated checks, and contain no real-order execution path.
+
+## Success criteria for the research foundation
+
+The system can build a reproducible dataset, calculate indicators deterministically, version strategy rules, generate traceable signals, backtest without known look-ahead leakage, compare against a benchmark, persist paper trades, evaluate signal outcomes over time, and keep AI commentary separate from measured strategy performance.

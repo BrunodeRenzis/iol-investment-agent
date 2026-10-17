@@ -1,87 +1,115 @@
 # IOL Investment Agent
 
-A secure, auditable investment-assistant backend that integrates IOL with AI assistants such as Codex/ChatGPT and Claude.
+A secure, auditable personal investment platform integrating IOL data with systematic trading research, paper trading, deterministic risk controls, MCP, and advisory AI agents such as Codex/ChatGPT and Claude.
 
-## Current project phase
+## Status
 
-**Phase 0: local backend foundation.**
+**Phase 0 complete: secure local backend foundation.**
 
-No production trading capability should be implemented or enabled yet.
+The next implementation work is focused on financial-domain foundations and **read-only IOL integration**.
+
+There is currently **no production trading capability**.
+
+## Product direction
+
+```text
+OBSERVE
+market data / portfolio snapshots / scheduled collection
+    ↓
+RESEARCH
+indicators / strategies / signals / backtesting / paper trading / AI review
+    ↓
+EXECUTE
+risk checks / preview / explicit human approval / broker execution
+```
+
+The first two levels may eventually run autonomously. Real-money execution may not.
+
+## Safety model
+
+> Observation may be autonomous. Research may be autonomous. Paper trading may be autonomous. Real-money execution may not be autonomous.
+
+AI models may analyze and propose. Deterministic code owns hard risk rules. Future real-money orders require an explicit user confirmation flow.
+
+See `AGENTS.md` and `docs/SECURITY.md`.
 
 ## Local setup
 
-The project root is `C:\Users\Bruno\Desktop\iol-investment-agent`, containing
-`AGENTS.md`, `apps/`, `packages/`, `docs/`, `prompts/`, and `package.json` directly.
-Run the following commands there using Node.js 22.16+ on the 22.x line or Node.js
-24.x, and npm 10+:
-
-```sh
+```bash
 npm ci
 npm run build
 npm start
 ```
 
-Use `npm install` when intentionally updating dependencies and review the resulting
-`package-lock.json`. Use `npm ci` for reproducible local and CI installs.
-
-`GET http://127.0.0.1:3000/health` returns `{"status":"ok"}`. It is a liveness
-endpoint, with no broker or database connectivity checks. No credentials are
-needed. It is limited to 60 requests per minute per client IP.
-
-`npm start` optionally loads `.env` from the project root using Node's built-in
-environment-file support. Existing environment variables take precedence. The
-default configuration works without an `.env` file. If needed, copy
-`.env.example` to `.env` and edit only the application settings; leave future
-integration placeholders empty.
-
-| Variable        | Default       | Validation                             |
-| --------------- | ------------- | -------------------------------------- |
-| `NODE_ENV`      | `development` | `development`, `test`, or `production` |
-| `HOST`          | `127.0.0.1`   | Only `127.0.0.1` in Phase 0            |
-| `PORT`          | `3000`        | Integer from 1 through 65535           |
-| `IOL_READ_ONLY` | `true`        | Only the literal `true` in Phase 0     |
-
-Invalid configuration prevents startup. Errors name the invalid field without
-echoing its value. The application ignores future IOL, database, and AI settings.
-Phase 0 has no broker access, financial data, or order execution paths.
+`GET http://127.0.0.1:3000/health` returns the Phase 0 liveness response. No broker credentials are required for Phase 0.
 
 ## Development checks
 
-```sh
+```bash
 npm run format
 npm run check
 npm run audit:dependencies
 ```
 
-`check` runs formatting verification, type-aware linting, strict typechecking,
-unit and local HTTP integration tests, and the production build. Individual
-commands are `format:check`, `lint`, `typecheck`, `test`, and `build`. Tests use
-Node's built-in test runner and an ephemeral loopback port; they make no external
-service calls. Each test run removes only the generated `.test-dist` directory,
-compiles application and package sources/tests, and automatically discovers
-compiled `*.test.js` files. Name new tests `*.test.ts` under `apps/*/test`,
-`apps/*/src`, or anywhere under `packages/*`.
+CI runs repository checks and Gitleaks scanning.
 
-GitHub Actions runs one check suite and dependency audit, plus a separate Gitleaks
-scan of the full fetched Git history with redacted output. CI runs for pull
-requests and pushes to `main`/`master`, with timeouts and superseded-run cancellation.
-No developer hooks are installed. `.gitignore` excludes environment files,
-private keys, credential files, and local Claude settings; `.env.example` remains
-trackable with empty credential placeholders.
+## Intended workspace boundaries
 
-## Workspace boundaries
+```text
+apps/
+  api/              HTTP composition root
 
-- `apps/api`: NestJS HTTP composition, configuration, health, and request logging.
-- `packages/iol`: reserved for broker transport and typed adapters.
-- `packages/risk`: reserved for deterministic domain rules without NestJS dependencies.
-- `packages/mcp`: reserved for narrowly scoped tools after the core is stable.
+packages/
+  iol/              IOL transport/auth/read-only adapters
+  market-data/      normalized quotes/bars/observations
+  portfolio/        balances, positions, snapshots, P&L
+  risk/             deterministic limits and exposure rules
+  trading/          indicators, strategies, signals, backtests, paper trading
+  scheduler/        scheduled observation/research jobs
+  ai/               provider-neutral AI advisory layer
+  mcp/              narrow read-only MCP tools
+  execution/        future gated execution boundary
+```
 
-The reserved packages are private workspace placeholders, with no runtime
-exports or integrations. See `docs/DECISIONS.md` for the Phase 0 tooling and
-security choices. The only current route is public liveness on loopback;
-authentication and authorization must precede any future financial-data route.
-Request logs contain a server-generated correlation ID, status, and duration,
-never request headers, URLs, bodies, or credentials.
+Not every package exists yet. They are introduced incrementally by the roadmap.
+
+## Strategy lifecycle
+
+```text
+IDEA
+  ↓
+SPECIFIED
+  ↓
+BACKTESTED
+  ↓
+VALIDATED
+  ↓
+PAPER_TRADING
+  ↓
+REVIEWED
+  ↓
+ELIGIBLE_FOR_HUMAN_APPROVAL
+```
+
+Eligibility still does not grant autonomous execution.
+
+## Near-term implementation
+
+1. harden local Git/secret/test workflow;
+2. define decimal-safe financial primitives;
+3. implement read-only IOL access;
+4. normalize portfolio and quote data;
+5. persist market observations and portfolio snapshots;
+6. build deterministic risk metrics;
+7. add indicators and strategy contracts;
+8. add reproducible backtesting;
+9. add paper trading;
+10. add scheduled data collection;
+11. expose narrow read-only MCP tools;
+12. add OpenAI and Anthropic advisory adapters;
+13. consider execution only after a separate security review.
+
+See `docs/ROADMAP.md` and `docs/IMPLEMENTATION_PLAN.md`.
 
 ## Documentation
 
@@ -91,11 +119,15 @@ Read in this order:
 2. `docs/PROJECT.md`
 3. `docs/ARCHITECTURE.md`
 4. `docs/SECURITY.md`
-5. `docs/ROADMAP.md`
-6. `docs/DECISIONS.md`
+5. `docs/IMPLEMENTATION_PLAN.md`
+6. `docs/ROADMAP.md`
+7. `docs/DECISIONS.md`
+8. `docs/WORKFLOW.md`
 
 ## Agent workflow
 
-Both Codex and Claude may work on this repository, but not on the same task/files simultaneously unless coordinated by the user.
+Codex and Claude may collaborate on the repository, but they should not modify the same files simultaneously unless explicitly coordinated.
+
+The default workflow is: one agent implements, the other reviews, the user chooses which findings to accept, and the user commits.
 
 Neither agent may commit, push, merge, or execute real-money operations by default.

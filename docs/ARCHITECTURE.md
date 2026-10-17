@@ -1,167 +1,127 @@
 # Architecture
 
-## High-level design
+## High-level model
 
 ```text
-Codex / ChatGPT --------\
-                         \
-                          -> MCP / API boundary -> NestJS core -> IOL adapter -> IOL
-                         /
-Claude ----------------/
+External data (IOL / future feeds)
+          ↓
+market-data normalization + ingestion
+          ↓
+portfolio snapshots + persistent observations
+          ↓
+trading research
+(indicators / strategies / signals / backtesting / paper trading)
+          ↓
+     ┌────┴────┐
+     ↓         ↓
+ deterministic AI advisory
+ risk          review
+     └────┬────┘
+          ↓
+recommendation / research output
 
-                                  |
-                                  +-> Risk engine
-                                  +-> Portfolio normalization
-                                  +-> Audit / telemetry
-                                  +-> Persistence
+FUTURE, SEPARATE PATH:
+human-approved proposal -> risk validation -> preview -> explicit confirmation -> execution -> IOL
 ```
 
-## Architecture style
+## Architectural style
 
-Start as a modular monolith.
+Use a modular monolith until measured requirements justify separation. Avoid microservices in early phases.
 
-Do not introduce microservices until there is a measured operational reason.
-
-## Proposed repository layout
+## Intended repository layout
 
 ```text
 apps/
   api/
-    src/
-      modules/
-        health/
-        portfolio/
-        market/
-        auth/
-packages/
-  iol/
-    src/
-      client/
+    src/modules/
+      health/
       auth/
       portfolio/
       market/
+      research/
+
+packages/
+  iol/
+  market-data/
+  portfolio/
   risk/
-    src/
-      concentration/
-      limits/
-      money/
+  trading/
+    indicators/
+    strategies/
+    signals/
+    backtesting/
+    paper-trading/
+    evaluation/
+  scheduler/
+  ai/
+    contracts/
+    openai/
+    anthropic/
+    committee/
   mcp/
-    src/
-      tools/
-docs/
-prompts/
+  execution/   # future only
 ```
 
-## Boundaries
+## Domain boundaries
 
 ### IOL adapter
-Responsible for:
-- authentication/token handling,
-- HTTP transport,
-- mapping IOL errors,
-- rate-limit handling,
-- typed raw response schemas.
 
-It must NOT contain portfolio strategy or AI logic.
+Owns authentication/token lifecycle, safe HTTP transport, typed provider schemas, error mapping, rate-limit behavior, and read-only account/market operations in early phases. It must not contain strategy or AI logic. Early interfaces should not expose write methods at all.
 
-### Portfolio domain
-Responsible for:
-- normalized positions,
-- balances,
-- P&L representation,
-- currency/value abstractions,
-- snapshots.
+### Market data
 
-### Risk engine
-Pure/deterministic where practical.
-Responsible for:
-- concentration,
-- exposure,
-- allocation limits,
-- proposed-order impact checks,
-- future hard guardrails.
+Owns normalized quotes/bars, source metadata, exchange/provider/ingestion timestamps, duplicate/stale-data handling, and dataset provenance. Raw provider schemas should not leak throughout the application.
 
-The risk engine must never depend on an LLM response to decide whether a safety constraint passes.
+### Portfolio
 
-### AI adapters
-Future layer.
-Responsible for:
-- transforming normalized data into model-safe context,
-- calling OpenAI/Anthropic,
-- parsing structured responses,
-- never receiving broker credentials.
+Owns balances, positions, normalized cost basis where available, snapshots, P&L representation, and asset/issuer/currency metadata.
 
-### MCP layer
-Expose only narrow, purpose-built tools.
-Initial tools should be read-only, for example:
-- `get_portfolio`
-- `get_balances`
-- `get_quote`
-- `get_exposure_summary`
+### Risk
 
-Do not expose a generic HTTP proxy to IOL.
+Pure/deterministic where practical. Owns concentration, issuer/sector/currency exposure, max-position rules, future proposal impact, drawdown/portfolio constraints, and veto conditions. Hard risk rules never depend solely on LLM output.
 
-## Order architecture — future only
+### Trading research
 
-A future write flow must be split into at least:
+Owns indicator functions, strategy definitions/versioning, signals, backtests, paper trades, and outcome evaluation. It must not call production broker write endpoints.
 
-```text
-proposeOrder()
-      |
-      v
-validateOrder()
-      |
-      v
-previewOrder()
-      |
-      v
-explicitUserConfirmation()
-      |
-      v
-executeConfirmedOrder()
-      |
-      v
-audit()
-```
+### Scheduler
 
-The confirmation artifact should have a short expiry and bind:
-- user,
-- instrument,
-- side,
-- quantity,
-- price/price type,
-- settlement,
-- currency,
-- generated request ID.
+Expresses recurring work such as market observation, portfolio snapshots, signal evaluation, paper-trading evaluation, and daily/weekly research summaries. Jobs must be idempotent and observable.
 
-No model can skip these steps.
+### AI
+
+Owns provider-neutral contracts, OpenAI/Anthropic adapters, structured advisory responses, and disagreement/consensus reporting. AI receives normalized context, never broker credentials.
+
+### MCP
+
+Expose narrow purpose-built tools such as `get_portfolio`, `get_balances`, `get_quote`, `get_exposure_summary`, `get_recent_signals`, and `get_strategy_performance`. Do not expose a generic IOL proxy, arbitrary HTTP/SQL, or shell access.
+
+### Execution
+
+Future only. Research signals do not imply execution authority. A future path is `proposeOrder -> validateOrder -> applyRiskRules -> previewOrder -> explicitUserConfirmation -> verifyExactMatchAndExpiry -> executeConfirmedOrder -> audit`.
 
 ## Data precision
 
-Use decimal-safe arithmetic for:
-- prices,
-- quantities,
-- nominal values,
-- FX,
-- interest,
-- P&L,
-- percentages used in risk limits.
+Before financial normalization, record an ADR choosing a decimal-safe arithmetic strategy. Define explicit concepts such as `Money`, `Currency`, `Price`, `Quantity`, `NominalValue`, `Percentage`, and `FxRate`. Do not use binary floating-point for critical financial arithmetic.
 
-Define explicit domain types such as:
-- `Money`
-- `Currency`
-- `InstrumentId`
-- `NominalValue`
-- `Quantity`
-- `Percentage`
+## Data persistence
+
+Persistence should support portfolio snapshots, market observations, strategy definitions/versions, generated signals, backtest runs, paper trades, evaluation outcomes, and future audit events.
+
+Every research result should be traceable to strategy version, dataset/version or observation range, execution timestamp, parameters, and code version where practical.
+
+## Scheduler evolution
+
+Early local phase: in-process schedule -> idempotent job handler -> database.
+
+Production 24/7 phase: scheduler -> durable queue -> workers -> database.
+
+Do not introduce Redis/BullMQ merely for architecture aesthetics. Add durable queueing when operational requirements justify it.
 
 ## Observability
 
-Use:
-- structured logs,
-- correlation IDs,
-- sanitized errors,
-- metrics for external API latency/failures,
-- audit records for sensitive future actions.
+Use structured logs, correlation IDs, safe provider error mapping, metrics for request latency/failures, job-run metadata, signal/backtest run IDs, and future immutable audit events. Do not log broker credentials, authorization headers, raw secrets, or unnecessary personal data.
 
-Never store full prompts/responses if they contain sensitive portfolio information unless explicitly intended and protected.
+## AI investment committee concept
+
+The committee is advisory, not authoritative. Systematic signal + deterministic risk analysis + independent OpenAI and Claude opinions produce an agreement/disagreement report for the user. Preserve disagreement rather than forcing false consensus. Record AI opinions separately from actual strategy performance.
