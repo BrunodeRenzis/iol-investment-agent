@@ -9,7 +9,7 @@ This is the high-level operational sequence, subordinate to `AGENTS.md` for poli
 - Phase 0: complete.
 - Documentation v2.1: adopted as canonical after independent review and user acceptance; operational plans remain subordinate to AGENTS.md and accepted ADRs.
 - App remains read-only, with no broker-write code, execution package, MCP or AI runtime.
-- This documentation task creates no code, dependencies, packages, hooks or deployment.
+- Phase 1 Step 1: repository hardening implemented; later steps remain pending. No financial capability, dependencies, packages, hooks or deployment added by Step 1.
 
 ## Documentation v2.1 canonical adoption
 
@@ -32,6 +32,10 @@ Authentication/authorization must exist BEFORE any financial/account endpoint, e
 ### Steps 1–2: Repository hardening and decimal-safe primitives
 
 Add a manually invoked staged-file secret scan without installing hooks or changing Git hook configuration (ADR-015), tighten ignored secret patterns, make discovery explicit and fail on zero tests. Resolve ADR-009 and test Currency, Money, Price, Quantity, NominalValue, Percentage and FxRate with explicit rounding.
+
+Step 1 is implemented by `npm run scan:staged`, targeted ignore patterns and the
+explicit compiled-test runner (ADR-018). Gitleaks setup is manual; see README.md.
+Step 2 and financial primitives are still pending separate scope approval.
 
 ### Steps 3–4: Verify contract, then implement read-only adapter
 

@@ -187,7 +187,7 @@ Validate all external inputs/provider responses and reject unexpected fields in 
 
 Never log full IOL responses that may contain sensitive account data. Never put ANY secret in model prompts. Do not persist full sensitive prompts/responses unless the requirement is explicitly approved by the user and the data is protected. Enforce the persistence protections in section 4.
 
-Pin/lock dependencies, review major upgrades for security impact, and retain vulnerability scanning. Keep Gitleaks CI. A future local staged-file scan is an explicitly invoked command under ADR-015; no local hooks are installed or Git hook configuration modified.
+Pin/lock dependencies, review major upgrades for security impact, and retain vulnerability scanning. Keep Gitleaks CI. The local staged-file scan is explicitly invoked with `npm run scan:staged` under ADR-015/ADR-018; no local hooks are installed or Git hook configuration modified. The command reads staged changes without modifying the index.
 
 Before any broker-write phase or off-machine deployment, perform the corresponding threat-model review and obtain explicit user approval. Agents must NEVER silently weaken or change the project security model.
 

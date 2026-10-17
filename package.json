@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node scripts/test.mjs",
+    "scan:staged": "node scripts/scan-staged.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "audit:dependencies": "npm audit --audit-level=high"
   },

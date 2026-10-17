@@ -15,6 +15,13 @@ Thumbs.db
 *.pem
 *.key
 id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
+*.ppk
+token*.txt
+*-secrets.yaml
+*-secrets.yml
 *.p12
 *.pfx
 credentials*.json

@@ -3,6 +3,7 @@ import { rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, URL } from 'node:url';
+import { discoverTests } from './test-discovery.mjs';
 
 const projectRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
 const testOutput = join(projectRoot, '.test-dist');
@@ -25,10 +26,23 @@ const compilation = spawnSync(
 if (compilation.error) throw compilation.error;
 if (compilation.status !== 0) process.exit(compilation.status ?? 1);
 
-// Node recursively discovers *.test.js within the freshly compiled tree.
-const tests = spawnSync(process.execPath, ['--test'], {
-  cwd: testOutput,
+const tests = spawnSync(
+  process.execPath,
+  [join(projectRoot, 'scripts/run-compiled-tests.mjs'), testOutput],
+  { cwd: projectRoot, stdio: 'inherit' },
+);
+if (tests.error) throw tests.error;
+if (tests.status !== 0) process.exit(tests.status ?? 1);
+
+// Tooling tests are separate so they cannot mask an empty application suite.
+const toolingFiles = discoverTests(
+  join(projectRoot, 'scripts/test'),
+  '.test.mjs',
+);
+if (toolingFiles.length === 0) throw new Error('No tooling tests found');
+const tooling = spawnSync(process.execPath, ['--test', ...toolingFiles], {
+  cwd: projectRoot,
   stdio: 'inherit',
 });
-if (tests.error) throw tests.error;
-process.exitCode = tests.status ?? 1;
+if (tooling.error) throw tooling.error;
+process.exitCode = tooling.status ?? 1;

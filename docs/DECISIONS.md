@@ -95,7 +95,7 @@ user approval; no history or repository state is created by this task.
 
 **Status:** Accepted
 
-**Clarified by:** ADR-015.
+**Clarified by:** ADR-015. Test discovery is superseded by ADR-018; the no-local-hooks policy is retained.
 **Date:** 2026-10-16
 
 ### Decision
@@ -383,3 +383,47 @@ Deterministic automation MAY move a strategy to REJECTED when objective rejectio
 Research may be autonomous within an approved phase. Paper trading may run autonomously only within an approved phase and for a human-approved strategy state. Real-money execution may not be autonomous. All existing phase and execution prohibitions remain intact.
 
 Documentation v2.1 is adopted as canonical after independent review and user acceptance. AGENTS.md remains authoritative for policy, accepted non-superseded ADRs for architecture, and MASTER_PLAN.md for subordinate operational sequencing. This adoption does not authorize another implementation phase.
+
+## ADR-018 — Explicit test discovery and manual staged secret scanning
+
+**Status:** Accepted; supersedes only ADR-003's default/recursive Node discovery and implements ADR-015. Historical decision text is preserved.
+
+**Date:** 2026-10-17
+
+### Context
+
+Phase 1 Step 1 hardens repository tooling without adding financial capabilities.
+Implicit test discovery can execute helpers or succeed with no tests. Local secret
+scanning must not install hooks or mutate the developer's index.
+
+### Decision
+
+Keep deletion of stale `.test-dist` before compilation. Recursively enumerate
+regular compiled `*.test.js` files under `.test-dist/apps` and
+`.test-dist/packages`, sort them, and pass their explicit paths to Node's test
+runner. Do not follow symlinks or execute helper files as test entry points. Fail
+nonzero when there are no compiled tests, or when compilation/test execution fails.
+Run separately discovered `scripts/test/**/*.test.mjs` tooling regressions after
+the application suite; those tests cannot satisfy the zero-application-tests guard.
+
+Provide `npm run scan:staged`, an explicit wrapper for Gitleaks 8.30.1 (the CI-pinned
+version) using `git --staged`, full redaction and nonzero failure codes. Require a
+manually installed, checksum-verified executable on PATH or at `GITLEAKS_PATH`.
+Check its version and fail closed if missing, incompatible or interrupted. No
+automatic downloads, install lifecycle scripts, Git configuration changes or hooks.
+The wrapper and scanner read staged changes without staging, rewriting or
+unstaging files. CI remains unchanged and scans full history.
+
+### Consequences
+
+Future app/package tests are picked up by filename rather than a maintained list.
+Scratch tests verify zero-test failure, nested discovery, helper exclusion and
+failure propagation. Scanner tests verify invocation and failure handling without
+requiring Gitleaks for the ordinary application checks. Staged scanning requires
+the explicit local prerequisite and examines added diff content, not all working
+files or unchanged history. An empty staged diff has no findings. It supplements
+CI and careful handling of secrets; it cannot guarantee secret absence.
+
+Targeted ignores cover Ed25519/ECDSA/DSA private-key names, PuTTY private keys,
+token text files and secret YAML suffixes without ignoring ordinary YAML or source
+files. No part of this decision authorizes later Phase 1 steps or broker writes.

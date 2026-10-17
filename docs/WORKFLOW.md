@@ -57,4 +57,4 @@ Before Phase 9 approval and threat-model review there is no broker-write code, i
 
 Start the minimal collector in Phase 2.5. Before off-machine/24/7 deployment, apply the explicit approval and security gate in ROADMAP.md/ADR-016. This never grants broker writes.
 
-Future local staged scanning is a manually invoked command under ADR-015, with no hooks installed or Git hook configuration changed. Preserve the index. If required validation cannot run, state which check and why; never weaken a check to pass.
+Local staged scanning is manually invoked with `npm run scan:staged` under ADR-015/ADR-018 after the user prepares the index; see README.md for the pinned Gitleaks prerequisite. No hooks are installed or Git hook configuration changed. Preserve the index. `npm test` explicitly discovers compiled `*.test.js` under apps/packages, fails on zero compiled tests, and also runs tooling regression tests. If required validation cannot run, state which check and why; never weaken a check to pass.

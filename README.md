@@ -6,6 +6,9 @@ A secure, auditable personal investment platform integrating IOL data with syste
 
 **Phase 0 complete: secure local backend foundation.**
 
+Phase 1 Step 1 adds repository hardening only: manual staged secret scanning,
+targeted secret ignores, and explicit test discovery. Later steps remain pending.
+
 Documentation v2.1 is adopted as canonical after independent review. Operational plans remain subordinate to `AGENTS.md` for policy and accepted, non-superseded ADRs in `docs/DECISIONS.md` for architecture. Future implementation begins only with a user-selected step in financial foundations and **read-only IOL integration**.
 
 Before Phase 9 is explicitly approved, **NO broker-write code may exist**, including sandbox and production. `packages/execution` remains **ABSENT**. Paper trading is entirely internal simulation with no broker writes.
@@ -54,6 +57,38 @@ npm run audit:dependencies
 ```
 
 CI runs repository checks and Gitleaks scanning.
+
+`npm test` removes stale `.test-dist`, compiles tests, and explicitly passes only
+`apps/**/*.test.js` and `packages/**/*.test.js` from that output to Node's runner.
+Zero compiled tests is an error. Helper JavaScript files are not test entry points.
+Separate tooling tests also run; they cannot mask an empty application suite.
+
+### Manual staged secret scan
+
+Install [Gitleaks 8.30.1](https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1)
+manually and verify the archive against the release's SHA-256 checksums. This
+matches CI. Make the executable available on PATH or set `GITLEAKS_PATH` to its
+absolute path; no installer or hook runs during `npm ci`.
+
+```bash
+npm run scan:staged
+```
+
+For a portable executable on Windows, set the path in the current PowerShell session:
+
+```powershell
+$env:GITLEAKS_PATH = 'C:\tools\gitleaks\gitleaks.exe'
+npm run scan:staged
+```
+
+Run this explicitly after preparing your own staged changes and before committing.
+It uses [Gitleaks staged-diff scanning](https://github.com/gitleaks/gitleaks/blob/v8.30.1/cmd/git.go)
+with fully redacted findings. It scans staged additions, not unstaged/untracked
+content or unchanged historical content; CI retains full-history scanning. An
+empty staged diff reports no findings. Missing/wrong-version Gitleaks, scan errors,
+and detected secrets return nonzero. The command never stages/unstages files,
+installs hooks, changes Git configuration, or downloads software. Scanner detection
+is best-effort; ignored filenames and a clean scan do not prove absence of secrets.
 
 ## Intended workspace boundaries
 

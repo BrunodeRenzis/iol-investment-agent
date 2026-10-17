@@ -24,9 +24,9 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 
 ## Phase 1 — financial foundations and IOL read-only
 
-- [ ] manually invoked local staged-file secret scan, retaining no local hooks (ADR-015)
-- [ ] explicit test discovery + fail on zero tests
-- [ ] tighten remaining secret-file ignore patterns
+- [x] manually invoked local staged-file secret scan, retaining no local hooks (ADR-015/ADR-018)
+- [x] explicit test discovery + fail on zero tests
+- [x] tighten remaining secret-file ignore patterns
 - [ ] resolve ADR-009 for decimal-safe arithmetic, rounding, and financial value objects
 - [ ] verify official IOL auth/read-only contracts; mark unknowns UNKNOWN, never invent behavior
 - [ ] Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes; separate read/write permissions whenever supported

@@ -10,6 +10,12 @@ Before explicitly approved Phase 9 and its threat-model review, NO broker-write 
 
 Add a manually invoked staged-file secret scan that reads the index without staging/changing it; retain the no-local-hooks policy under ADR-015. Tighten secret patterns, make test discovery explicit and fail on zero tests. Keep Phase 0 behavior unchanged. Do not install hooks or modify Git hook configuration.
 
+Implemented in Step 1: `npm run scan:staged` uses pinned Gitleaks against staged
+changes with redaction; setup remains explicit (README.md). Tests clean `.test-dist`,
+discover only compiled `*.test.js` under apps/packages, and fail if none exist.
+Tooling regressions cover discovery, helper exclusion, failures and scanner
+invocation. ADR-018 records these choices; Step 2 is not started.
+
 ## Step 2 — Phase 1 financial numeric primitives
 
 Resolve proposed ADR-009, compare decimal-safe libraries, document rounding, and test explicit Currency, Money, Price, Quantity, NominalValue, Percentage and FxRate concepts. Business/risk rules must be testable offline.
