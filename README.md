@@ -9,7 +9,12 @@ A secure, auditable personal investment platform integrating IOL data with syste
 Phase 1 Step 1 adds repository hardening only: manual staged secret scanning,
 targeted secret ignores, and explicit test discovery. Step 2 adds offline,
 broker-independent financial primitives in `packages/financial` using pinned
-bignumber.js 11.1.5 (ADR-019). Step 3 and later remain pending.
+bignumber.js 11.1.5 (ADR-019). Step 3 research is recorded in
+[the IOL contract evidence register](docs/IOL_CONTRACT.md), corrected against the
+official public Swagger v1/v2. Step 4 is ready for read-only adapter design using
+schemas, mocks and allowlist tests without real credentials. Real broker calls,
+Step 5 aggregation and persistent collection retain separate unresolved gates.
+No broker adapter was added.
 
 Documentation v2.1 is adopted as canonical after independent review. Operational plans remain subordinate to `AGENTS.md` for policy and accepted, non-superseded ADRs in `docs/DECISIONS.md` for architecture. Future implementation begins only with a user-selected step in financial foundations and **read-only IOL integration**.
 

@@ -18,6 +18,30 @@ Broker read and write permissions/scopes must be separated whenever the provider
 
 In that case, isolate the token strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and add automated tests enforcing that allowlist. Never pass broker credentials/tokens to scheduler, AI, MCP, trading research, or a generic HTTP client. No other package may obtain direct broker credentials; callers use the narrow IOL adapter. Future write credentials must be separate from read credentials whenever possible. These controls do not authorize broker-write code before approved Phase 9.
 
+Step 3 evidence is maintained in [IOL_CONTRACT.md](IOL_CONTRACT.md). Personal REST
+read-only scopes are UNKNOWN — must be verified; IOL's documented MCP read-only
+consent does not establish REST token permissions. Apply ADR-017's write-capable
+assumption. Step 4 must bind exact trusted origin/host, HTTP method, exact path
+template, allowed path values/enums and allowed query parameter names; reject
+everything else before network access. Prevent redirects escaping the trusted
+origin or tuple and test denial before transport. Path alone cannot distinguish the
+documented GET/DELETE collision on operations. No generic authenticated HTTP access. The
+token flow remains separately constrained and private to `packages/iol`. Portfolio
+and every other package remain excluded from direct credential access. These are
+future implementation requirements, not claims that an adapter already exists.
+
+Official routes/schemas now support offline Step 4 design, not unrestricted real
+calls. Resolve runtime/auth questions and obtain sanitized USER-RUN verification;
+agents must not use real credentials. Exclude `datos-perfil` from the initial
+allowlist because it exposes personal identifiers. Minimize account numbers in
+allowed responses, redact them from logs and keep them out of model prompts unless
+an explicitly approved future use requires them. Secrets never enter prompts.
+
+Critical financial JSON numbers must be preserved losslessly as text before
+constructing financial primitives; ordinary JS Number intermediates are forbidden.
+The homo documentation UI points Swagger discovery at production, so its Try it
+out feature is not proof of a safe sandbox. No broker writes are authorized.
+
 ## Authentication and authorization
 
 Financial/account data endpoints require authentication and authorization before introduction, including on localhost/loopback, as required by ADR-002 and clarified by ADR-010. Public health exposes no financial data. Authorization fails closed. MCP clients authenticate and receive narrowly scoped tool permissions.

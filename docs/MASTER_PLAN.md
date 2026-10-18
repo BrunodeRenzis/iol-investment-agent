@@ -1,6 +1,6 @@
 # IOL Investment Agent — Master Implementation Plan
 
-_Last updated: 2026-10-17_
+_Last updated: 2026-10-18_
 
 ## Authority and current status
 
@@ -10,7 +10,8 @@ This is the high-level operational sequence, subordinate to `AGENTS.md` for poli
 - Documentation v2.1: adopted as canonical after independent review and user acceptance; operational plans remain subordinate to AGENTS.md and accepted ADRs.
 - App remains read-only, with no broker-write code, execution package, MCP or AI runtime.
 - Phase 1 Step 1: repository hardening implemented. No financial capability, dependencies, packages, hooks or deployment added by Step 1.
-- Phase 1 Step 2: offline financial primitives implemented in `packages/financial` (ADR-019). Step 3 and later remain pending; no broker adapter or financial endpoint introduced.
+- Phase 1 Step 2: offline financial primitives implemented in `packages/financial` (ADR-019).
+- Phase 1 Step 3: corrected official Swagger evidence recorded in [IOL_CONTRACT.md](IOL_CONTRACT.md). READY FOR READ-ONLY ADAPTER DESIGN with schemas/mocks and no real credentials. Runtime/auth, aggregation and collection gates remain separate. No broker adapter or financial endpoint introduced.
 
 ## Documentation v2.1 canonical adoption
 
@@ -40,13 +41,29 @@ Step 2 is implemented with pinned bignumber.js 11.1.5 and distinct immutable val
 objects (ADR-019 resolves ADR-009). Use validated strings, exact bounded arithmetic,
 ratio percentages, explicit FX direction, string serialization and explicit
 rounding at verified boundaries. See `packages/financial/README.md` for semantics.
-Step 3 verification of IOL/market behavior remains pending separate scope approval.
+Step 3 research has been performed; unresolved IOL contract verification is tracked
+in [IOL_CONTRACT.md](IOL_CONTRACT.md). Later implementation remains separately gated.
 
 ### Steps 3–4: Verify contract, then implement read-only adapter
+
+The corrected Swagger inventory supports the four initial read candidates. Step 4
+can be separately selected for offline design/mocks/allowlist tests, without real
+credentials. Before real broker calls, resolve auth/runtime gaps, explicit casing
+handling and lossless numeric-text parsing, and obtain sanitized USER-RUN read-only
+verification. Agents must not use real credentials. The future allowlist binds
+exact origin/host, method, path template, allowed path values/enums and query names;
+deny outside it before network access and prevent redirect escape.
 
 Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes, alongside official auth/token lifecycle, endpoints, rate limits and sandbox behavior. Separate read/write permissions/scopes whenever supported; future write credentials must be separate whenever possible. If read-only scope capability is unavailable or unverified, treat the token as write-capable even with a read-only adapter. Step 4 isolates it strictly inside `packages/iol`, permits only a fixed allowlist of verified read-only endpoint paths, and adds automated allowlist enforcement tests. No other package, scheduler, AI, MCP, trading research, or generic HTTP client may obtain direct broker credentials. Check IOL terms for storage, historical retention and redistribution before persistence/redistribution. Then implement typed read-only schemas, safe transport/auth, timeouts, sanitized errors and mocks/fixtures. No write methods.
 
 ### Step 5: Authentication + portfolio normalization
+
+`Currency = ARS | USD` does not permit aggregating broker USD balances across
+unverified MEP/CCL/account/settlement contexts. Swagger verifies account categories
+and balance fields: preserve at least `tipo + moneda + liquidacion` and necessary
+account provenance. MEP/CCL equivalence, `administrada_*`, settlement mapping and
+`totalEnPesos` basis remain UNKNOWN — must be verified before Step 5 aggregation.
+Follow [IOL_CONTRACT.md](IOL_CONTRACT.md); Currency is unchanged.
 
 Authenticate and authorize financial/account endpoints before introduction, including localhost. Fail closed; validate sensitive fields, OAuth state/PKCE and CSRF where applicable. Normalize balances/positions and supported cost/P&L.
 

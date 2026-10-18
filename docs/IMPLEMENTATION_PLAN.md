@@ -35,11 +35,41 @@ Verify current official auth, read-only endpoints, rates, token lifecycle, and s
 
 ## Step 4 — Phase 1 read-only IOL adapter
 
+Step 3's corrected official Swagger evidence is recorded in
+[IOL_CONTRACT.md](IOL_CONTRACT.md). **READY FOR READ-ONLY ADAPTER DESIGN** using the
+four verified route/schema candidates, mocks and deterministic tests without real
+credentials. Real broker calls remain gated by auth/runtime questions, explicit
+casing policy, lossless parsing and sanitized USER-RUN read-only verification.
+Agents must not use real credentials. MCP read-only consent does not prove REST
+scopes. Legacy V1 portfolio and operational-history routes are not initial candidates.
+
 Use typed validated schemas, safe auth/token handling, timeouts, sanitized errors and fixtures/mocks. No write methods or strategy logic. Never log complete IOL responses that may contain sensitive account data.
 
 Separate broker read/write permissions/scopes whenever supported. If true read-only credentials/scopes are unavailable or unverified, treat the token as write-capable, isolate it strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and add automated tests enforcing that allowlist. Never pass the credential/token to scheduler, AI, MCP, trading research, or a generic HTTP client. No other package may obtain direct broker credentials; expose only the narrow IOL adapter. This containment does not authorize broker-write code.
 
+Before Step 4 transport implementation, constrain the allowlist by exact trusted
+origin/host, HTTP method, exact path template, allowed path values/enums and allowed
+query parameter names. Reject every non-allowlisted request before network access;
+redirects must not escape the trusted origin or the approved tuple. Add
+offline tests proving unapproved requests fail before network access. Tokens stay
+inside `packages/iol`, including exclusion from portfolio and generic HTTP utilities;
+the token flow is private and separately constrained. See the contract register's
+security requirements and ADR-017.
+
+Ingest critical JSON financial number tokens losslessly as text, never through
+ordinary JS Number before constructing financial values. Preserve the published
+double/int32 discrepancies and test precision boundaries. Select the parser in
+Step 4; no dependency or implementation is introduced by Step 3 (ADR-019).
+
 ## Step 5 — Phase 1 authentication and portfolio normalization
+
+Step 5 must resolve broker dollar contexts before aggregation. `Currency = ARS | USD`
+is a primitive, not permission to combine MEP/CCL or account/settlement categories.
+Swagger verifies distinct account categories and balance fields: initially preserve
+at least account `tipo + moneda + liquidacion` and necessary account provenance.
+MEP/CCL equivalence, `administrada_*`, cross-vocabulary settlement mapping and
+`totalEnPesos` basis remain UNKNOWN — must be verified before aggregation. Defer
+the normalization model to this step; Step 3 does not change `packages/financial`.
 
 Implement authentication and fail-closed authorization BEFORE introducing financial/account endpoints, even on localhost/loopback. Add normalized balances/positions/cost/P&L models and protected read-only endpoints. Reject unexpected sensitive fields where practical; apply OAuth state/PKCE and CSRF where applicable.
 

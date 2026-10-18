@@ -55,6 +55,14 @@ Broker read and write permissions/scopes must be separated whenever the provider
 
 In that case, isolate the token strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and add automated tests enforcing that allowlist. Never pass broker credentials/tokens to scheduler, AI, MCP, trading research, or a generic HTTP client. No other package may obtain direct broker credentials; callers use the narrow IOL adapter. Future write credentials must be separate from read credentials whenever possible. These controls do not authorize broker-write code before approved Phase 9.
 
+For IOL work, also read `docs/IOL_CONTRACT.md`, the canonical evidence register
+subordinate to this policy and accepted ADRs. Personal REST token scopes remain
+UNKNOWN — must be verified; permissions documented for another IOL product do not
+establish this token's capabilities. The future allowlist binds verified HTTP
+method + path and must reject unapproved requests before network access, proven
+by offline tests. Portfolio is included in the prohibition on direct credentials.
+No IOL implementation is authorized by recording research findings.
+
 ## 5. Financial-operation safety
 
 Default mode is **READ-ONLY**.

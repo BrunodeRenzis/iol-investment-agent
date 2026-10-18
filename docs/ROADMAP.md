@@ -28,7 +28,8 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 - [x] explicit test discovery + fail on zero tests
 - [x] tighten remaining secret-file ignore patterns
 - [x] resolve ADR-009 through ADR-019: decimal-safe arithmetic, explicit rounding and financial value objects in `packages/financial`
-- [ ] verify official IOL auth/read-only contracts; mark unknowns UNKNOWN, never invent behavior
+- [x] record corrected Step 3 Swagger v1/v2 research, hashes, conflicts and phase-specific gaps in [IOL_CONTRACT.md](IOL_CONTRACT.md)
+- [x] verify initial read route/schema contracts and documented token fields for offline Step 4 design; runtime questions remain separately gated
 - [ ] Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes; separate read/write permissions whenever supported
 - [ ] if true read-only credentials/scopes are unavailable or unverified, treat the token as write-capable even with a read-only adapter
 - [ ] isolate that token strictly inside `packages/iol`; expose only a fixed allowlist of verified read-only endpoint paths with automated enforcement tests
@@ -39,6 +40,17 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 - [ ] normalized models, sensitive-schema field rejection, OAuth state/PKCE and CSRF where applicable
 - [ ] timeout/error policy, fixtures/mocks, offline business/risk tests
 - [ ] prove no broker-write code exists and execution package is absent
+
+Step 4 is ready for read-only adapter design with official schemas, mocks and no
+real credentials. Real broker calls require resolution of runtime/auth questions,
+lossless number ingestion, explicit enum casing and sanitized USER-RUN verification.
+Personal REST scopes remain UNKNOWN — must be verified; MCP permissions cannot
+substitute. Bind exact origin/host + method + path template + allowed path values/
+enums + allowed query names, with denial-before-network tests and no redirect escape.
+Step 5 preserves account `tipo + moneda + liquidacion`; USD aggregation remains
+forbidden until MEP/CCL semantics, settlement mapping and valuation basis are verified.
+API/data-use rights remain unresolved and must be established before Phase 2
+market-data persistence or Phase 2.5 collection, not inferred from public access.
 
 ## Phase 2 — persistence and portfolio intelligence
 
