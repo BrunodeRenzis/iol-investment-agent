@@ -867,3 +867,37 @@ without retry. No refresh operation is introduced.
 Add NODE_USE_SYSTEM_CA to the runtime blocklist under the same names-only,
 case-insensitive presence check, before any credential prompt. No value is read
 or printed. These two corrections do not execute a real call or advance Step 5.
+
+## ADR-023 — Explicit personal title response market aliases
+
+**Status:** Accepted for the user-requested offline response-decoding correction.
+Supersedes ADR-020's exact-V2-only response market policy solely for TituloModel;
+all request policies and other response fields remain unchanged.
+
+**Date:** 2026-10-19
+
+Bruno reports successful authentication and an instrument GET reaching production,
+followed by invalid_payload at instrument.mercado, kind enum. The exact rejected
+wire value was not disclosed and remains UNKNOWN. This does not establish
+successful decoding or complete Step 4 acceptance.
+
+The registered official D collection documents bcba in the personal instrument
+response and NYSE in a personal portfolio's nested title. Use a closed response-only
+mapping: bcba -> bCBA and NYSE -> nYSE, plus identity mappings for the six V2 market
+values. These are explicit local mappings between documented spellings; no runtime
+case folding, fuzzy matching or undocumented aliases. Advisor-only BCBA examples
+do not widen the personal title vocabulary. IOL_CONTRACT.md records exact evidence.
+
+Override only TituloModel.mercado's decoder. Existing reuse for portfolio titles
+therefore canonicalizes that same field. Quote-detail decoding remains unchanged.
+No country, currency, security type, settlement, int32 or exponent policy changes.
+Canonicalization happens before existing identity checks: a recognized NYSE alias
+still fails an instrument response requested for bCBA. Unknown strings retain enum
+diagnostics without values. Internal DTOs expose only canonical IolMarket values.
+
+The request allowlist, market constants, origin, method, paths, symbol grammar and
+query prohibition remain byte-for-byte unchanged. No response alias grants a new
+request capability. Offline mock regressions cover acceptance, rejection, identity
+and the manual action-1 chain. No real credentials or operational IOL calls by
+agents; no automatic retry or Step 5 advancement. Further user-run verification
+remains subject to the existing runbook and session approval.

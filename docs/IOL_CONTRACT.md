@@ -1,8 +1,9 @@
 ﻿# IOL contract research — Phase 1 Step 3 correction
 
-Updated **2026-10-18** in the real repository working tree. Step 3 researched the
+Updated **2026-10-19** in the real repository working tree. Step 3 researched the
 official contract; Step 4 now implements its four initial reads offline (ADR-020).
-No real credentials or authenticated account calls have been used.
+Agents have used no real credentials or authenticated operational calls. Bruno
+has reported a partial user-run production verification, recorded below.
 This evidence register is subordinate to `AGENTS.md` and accepted ADRs.
 
 **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING.** Official public
@@ -13,10 +14,10 @@ The public factory is offline-only; real verification follows
 unrestricted broker calls, Step 5 aggregation, persistent collection or broker
 writes. Runtime verification gates remain below.
 
-Step 4B (ADR-021) adds **REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED**.
+Step 4B (ADR-021) originally recorded **REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED**.
 Private password grant and a separate local runner are prepared with offline
-tests only; public factory remains offline. No new provider evidence or real
-response has been obtained. Five-minute in-memory policy, hidden input, discarded
+tests only; public factory remains offline. At that preparation stage no real
+response had been obtained. Five-minute in-memory policy, hidden input, discarded
 refresh token, no automatic refresh/re-login/retry and operation-specific safe
 summaries reduce the first session's scope without resolving provider unknowns.
 Review, explicit real-session approval, entitlement/limits/incident checks and
@@ -27,7 +28,24 @@ evidence: runtime restrictions, ordered reads, safe schema diagnostics, no exact
 portfolio counts and a shared 16,384-character access-token bound. Failure after
 possible issuance does not prove revocation or expiry; follow the manual runbook's
 incident/waiting policy using the access lifetime already documented by source A.
-**REAL CALL NOT YET EXECUTED.** All provider unknowns below remain unresolved.
+Its original **REAL CALL NOT YET EXECUTED** status is superseded only by the limited
+user-reported evidence below; complete Step 4 acceptance remains pending.
+
+## VERIFIED BY USER-RUN PRODUCTION READ — partial evidence
+
+Recorded 2026-10-19 from Bruno's report, not from an agent-run broker call:
+
+- Authentication succeeded.
+- Action 1's instrument GET reached the real IOL API.
+- Response decoding stopped with invalid_payload, path instrument.mercado,
+  kind enum: the response disagreed with the strict Swagger enum policy there.
+
+The sanitized runner did NOT reveal the rejected value. Its exact spelling and
+type remain UNKNOWN; neither bcba, BCBA nor any other wire value is claimed as
+production-observed. No username, token, account data or raw payload is recorded.
+No successful instrument decoding or actions 2–4 are established by this report.
+Step 4 remains incomplete and Step 5 remains unstarted. ADR-023's offline fix uses
+official documentation evidence independently of that unknown production value.
 
 ## Evidence labels and correction
 
@@ -257,11 +275,31 @@ D portfolio examples use `Argentina`, `NYSE`, `ACCIONES`; V2 spells correspondin
 enums `argentina`, `nYSE`, `aCCIONES`. Advisor examples are comparison evidence,
 not interchangeable personal-account contracts.
 
-Do not silently lowercase everything, ignore enums or invent aliases. Step 4
-accepts exact V2 enum spelling only, preserving accepted values unchanged and
-rejecting documentation-example aliases rather than guessing a mapping. Confirm actual personal-account
-shape/casing through a sanitized USER-RUN read-only verification before real calls
-are enabled. No agent uses real credentials.
+Do not silently lowercase everything, ignore enums or invent aliases. Requests
+retain exact V2 enum spelling only. ADR-023 narrowly supersedes the previous
+response policy for TituloModel.mercado (instrument and reused portfolio title):
+
+| Accepted wire value                 | Canonical internal value | Official evidence                                                           |
+| ----------------------------------- | ------------------------ | --------------------------------------------------------------------------- |
+| bCBA, nYSE, nASDAQ, aMEX, bCS, rOFX | Same exact value         | V2 registered market enum                                                   |
+| bcba                                | bCBA                     | D: Titulos / Titulos Titulos / OK, response.mercado                         |
+| NYSE                                | nYSE                     | D: Mi Cuenta / Mi Cuenta Portafolio / OK, response.activos[].titulo.mercado |
+
+D's public collection linked above was rechecked on 2026-10-19 for these exact
+fields; only market spellings/schema paths were extracted, without copying raw
+examples or credential fields. This is documentation evidence, not live evidence.
+The mapping to the corresponding V2 member is an explicit local compatibility
+decision. D also uses BCBA in advisor operation examples; those are not evidence
+for the personal title contract, so BCBA remains rejected here. No other aliases
+(including nyse, Nyse or NASDAQ) are inferred. Other examples contain placeholder
+strings, which are not enum aliases.
+
+Unknown strings still fail with the known schema path and kind enum. Missing,
+null and non-string values retain their specific diagnostic kinds. Canonicalization
+precedes existing request/response identity matching: NYSE cannot satisfy bCBA.
+Quote-detail market decoding and all country/currency/type/settlement/numeric
+policies remain unchanged. Actual compatibility still requires reviewed user-run
+verification. No agent uses real credentials.
 
 ## Exclusions, collision risk and deferred reads
 

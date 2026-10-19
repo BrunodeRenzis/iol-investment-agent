@@ -1,4 +1,4 @@
-import { IOL_COUNTRIES, IOL_MARKETS } from '../values';
+import { IOL_COUNTRIES, IOL_MARKETS, type IolMarket } from '../values';
 import {
   array,
   decimal,
@@ -8,7 +8,28 @@ import {
   optional,
   stringValue,
   type Decoded,
+  type Decoder,
 } from './json';
+import { requiredKind, schemaFailure } from './schema-diagnostic';
+
+// Response-only TituloModel vocabulary: V2 plus D personal title examples.
+// ADR-023 / IOL_CONTRACT.md. Never reused by request routing or other enums.
+const titleMarkets = new Map<string, IolMarket>([
+  ['bCBA', 'bCBA'],
+  ['nYSE', 'nYSE'],
+  ['nASDAQ', 'nASDAQ'],
+  ['aMEX', 'aMEX'],
+  ['bCS', 'bCS'],
+  ['rOFX', 'rOFX'],
+  ['bcba', 'bCBA'],
+  ['NYSE', 'nYSE'],
+]);
+const titleMarket: Decoder<IolMarket> = (value, path = 'payload') => {
+  if (typeof value !== 'string') throw schemaFailure(requiredKind(value), path);
+  const canonical = titleMarkets.get(value);
+  if (canonical === undefined) throw schemaFailure('enum', path);
+  return canonical;
+};
 
 const currency = enumeration([
   'peso_Argentino',
@@ -85,6 +106,7 @@ const identity = {
 };
 export const instrument = object({
   ...identity,
+  mercado: titleMarket,
   descripcion: optional(stringValue),
 });
 const balance = object({

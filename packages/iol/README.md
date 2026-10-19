@@ -53,7 +53,7 @@ port spelling, hostname casing, subdomain or localhost override is accepted.
 All redirects, including same-origin redirects, fail; `fetch` uses `redirect:
 'manual'`. There are no automatic retries, including for 401/429.
 
-Canonical inputs and response enums use exact V2 Swagger spelling only:
+Canonical request inputs use exact V2 Swagger spelling only:
 
 - `pais`: `argentina`, `estados_Unidos`.
 - `mercado`: `bCBA`, `nYSE`, `nASDAQ`, `aMEX`, `bCS`, `rOFX`.
@@ -64,7 +64,10 @@ Canonical inputs and response enums use exact V2 Swagger spelling only:
 
 Response enums also use exact V2 spelling, including account/security types,
 currencies and the separate balance versus instrument settlement vocabularies.
-Documentation-example aliases are deliberately unsupported pending live evidence.
+The sole response exception is TituloModel.mercado (ADR-023): documented personal
+examples bcba and NYSE map explicitly to bCBA and nYSE, respectively; canonical V2
+values map to themselves. This also applies to reused portfolio titles. BCBA and
+arbitrary casing remain rejected. Quote-detail market decoding is unchanged.
 Instrument/detail market and symbol, and portfolio country, must match the request.
 Settlement is preserved from the response, never chosen through an invented query.
 
