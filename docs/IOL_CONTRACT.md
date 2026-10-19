@@ -1,14 +1,17 @@
 ﻿# IOL contract research — Phase 1 Step 3 correction
 
-Updated **2026-10-18** in the real repository working tree. Research and
-documentation only; no credentials, authenticated account calls or implementation.
+Updated **2026-10-18** in the real repository working tree. Step 3 researched the
+official contract; Step 4 now implements its four initial reads offline (ADR-020).
+No real credentials or authenticated account calls have been used.
 This evidence register is subordinate to `AGENTS.md` and accepted ADRs.
 
-**READY FOR READ-ONLY ADAPTER DESIGN.** Official public Swagger supplies the four
-initial read contracts. Step 4 may be separately selected for design using schemas,
-mocks and deterministic allowlist tests without real credentials. This is not
-readiness for unrestricted broker calls, Step 5 aggregation, persistent collection
-or broker writes. Runtime verification gates remain below.
+**OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING.** Official public
+Swagger supplies the four initial read contracts. Step 4 implements their
+allowlist, strict DTOs, lossless numeric parsing and private transport with mocks.
+The public factory is offline-only; real verification follows
+[IOL_MANUAL_VERIFICATION.md](IOL_MANUAL_VERIFICATION.md). This is not readiness for
+unrestricted broker calls, Step 5 aggregation, persistent collection or broker
+writes. Runtime verification gates remain below.
 
 ## Evidence labels and correction
 
@@ -105,20 +108,20 @@ unlimited/unpaginated runtime results or a complete error contract. Pagination,
 truncation, nullability and runtime shape remain verification questions. Model
 properties generally lack required arrays; do not invent field-presence guarantees.
 
-Future enforcement must bind **trusted origin + method + exact path template +
+Implemented Step 4 enforcement binds **trusted origin + method + exact path template +
 allowed path values/enums + allowed query names**. None means an empty query
 allowlist, including denial of unexpected query keys. The symbol's unrestricted
-schema string is not permission for arbitrary URLs or path segments: Step 4 must
-choose an explicit application-approved symbol set and safe encoding/validation,
-without presenting a locally chosen grammar as an IOL guarantee. Start with only
-needed markets/countries. Casing decisions require the explicit policy below.
+schema string is not permission for arbitrary URLs or path segments: Step 4 accepts
+only 1–32 uppercase ASCII letters/digits, without encoding or normalization. This
+is a local routing grammar, not an exhaustive IOL guarantee or current-symbol list.
+All documented market/country enums above are accepted with exact V2 spelling.
 
 Reject anything outside the tuple **before network access**, including method
 substitution, extra path segments, encoded traversal and alternate origins. Disable
 redirect following by default or prove every redirect still satisfies the full
 tuple; redirects must never escape the trusted origin or leak bearer credentials.
 Use offline tests with transport spies. No generic authenticated HTTP capability.
-This is a candidate only: no adapter or executable allowlist exists yet.
+This allowlist is implemented and tested offline; it has not been live-verified.
 
 ## VERIFIED — accounts, balances and portfolio
 
@@ -219,15 +222,16 @@ quantities/prices/gains and bid/ask price/quantity fields. `volumenNominal` is
 assume all quantities are integers. Provider internal precision/rounding remains
 **UNKNOWN — must be verified**.
 
-**Future Step 4 requirement:** retain the raw JSON numeric token text losslessly;
+**Step 4 requirement and implementation:** retain raw JSON numeric token text losslessly;
 never route critical financial values through ordinary JS binary floating-point
 `Number`, including `JSON.parse`/`response.json()` followed by `String(number)`.
 Convert the preserved textual value directly into string-based financial primitives.
-If JSON uses exponent notation, conversion to supported plain decimal syntax must
-also be lossless and bounded, without Number intermediates. Values outside the
-primitive's limits must fail rather than round silently. Add offline precision
-regressions; choose/validate the parsing implementation during Step 4. No parser,
-dependency or new primitive is introduced here. This applies ADR-019.
+Step 4 explicitly rejects all exponent notation and bounds plain decimal tokens
+to 100 integer/100 fractional digits instead of rounding. Pinned lossless-json
+4.3.2 plus a lexical-number callback produces string-backed DTOs; int32 fields use
+exact lexical/range checks and remain strings. ADR-020 records the selection and
+offline precision regressions. No financial primitive API or economic semantic
+conversion changes. This applies ADR-019.
 
 ## VERIFIED — official casing differences
 
@@ -237,9 +241,9 @@ D portfolio examples use `Argentina`, `NYSE`, `ACCIONES`; V2 spells correspondin
 enums `argentina`, `nYSE`, `aCCIONES`. Advisor examples are comparison evidence,
 not interchangeable personal-account contracts.
 
-Do not silently lowercase everything, ignore enums or invent aliases. Step 4 must
-define explicit handling of evidenced casing variants, preserve the original value
-for safe provenance and reject truly unknown values. Confirm actual personal-account
+Do not silently lowercase everything, ignore enums or invent aliases. Step 4
+accepts exact V2 enum spelling only, preserving accepted values unchanged and
+rejecting documentation-example aliases rather than guessing a mapping. Confirm actual personal-account
 shape/casing through a sanitized USER-RUN read-only verification before real calls
 are enabled. No agent uses real credentials.
 
@@ -339,11 +343,11 @@ policy rather than inventing provider behavior.
 
 ### Step 4 design
 
-The four initial route/schema definitions are verified. Their former absence is
-not a design blocker. Proceed only in a separately selected Step 4 using official
-schemas, mocks, lossless-number design and deterministic allowlist tests; no real
-credentials. Keep all unresolved behavior visible. Design readiness does not
-activate transport or authorize real-account access.
+The four initial route/schema definitions are verified and implemented offline
+under ADR-020. Numeric parsing, exact casing and deterministic allowlist tests are
+implemented. The local minimum required fields and optional/null policy are
+documented in `packages/iol/README.md`; these are defensive choices, not proof of
+runtime guarantees. Offline success does not authorize real-account access.
 
 ### Resolve during Step 4 before real broker calls
 
@@ -352,8 +356,12 @@ activate transport or authorize real-account access.
 - Actual 400/401/404/429 and other error bodies, invalid-instrument/parameter behavior,
   Retry-After, quotas, retry and timeout policy. V2 candidate routes document only
   success; examples in another interface do not establish these runtime contracts.
-- Explicit enum casing handling; lossless JSON-number parser selection and tests;
-  actual required/nullable fields and payload completeness. No permissive fallback.
+- Explicit enum casing handling and lossless parsing are implemented/tested offline
+  under ADR-020. Actual casing, required/nullable fields and payload completeness
+  still need user-run verification. No permissive fallback.
+- Verify quote-detail `volumenNominal` representation/range against its documented
+  int32 contract during the gated user-run session. Step 4 retains strict int32
+  behavior; the excluded CotizacionModel's double field does not change it.
 - Sanitized **USER-RUN** read-only response-shape verification. The user retains
   credentials locally and supplies only explicitly sanitized evidence, never tokens
   or private payloads to agents. No agent-run authenticated calls.
@@ -385,7 +393,7 @@ composite instrument fields during adapter design.
 
 | Topic                                         | Status / source              | Consequence                                                              |
 | --------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------ |
-| Initial account/portfolio/title/detail routes | VERIFIED — V2 and D          | Four constrained candidates; offline Step 4 design ready.                |
+| Initial account/portfolio/title/detail routes | VERIFIED — V2 and D          | Four constrained reads implemented offline; live verification pending.   |
 | Token request/response fields                 | VERIFIED — V1/A              | Lifecycle unknowns remain pre-live gates.                                |
 | REST read-only scopes                         | UNKNOWN — must be verified   | Treat all REST tokens as write-capable; ADR-017 isolation.               |
 | Dollar account categories / settlement enums  | VERIFIED — V2                | Preserve distinct fields; semantic equivalences remain Step 5 questions. |
@@ -394,7 +402,8 @@ composite instrument fields during adapter design.
 | Homo UI production root                       | VERIFIED — S                 | UI is not proof of sandbox safety.                                       |
 | Data-use restrictions / automation clauses    | VERIFIED wording/context — T | Permission for planned persistent collection remains unverified.         |
 
-No new ADR is needed. Credential containment, decimal-safe boundaries and identity
-preservation apply ADR-017, ADR-019 and ADR-013. Historical accepted text is unchanged.
-No application source, dependencies, lockfile, client/auth implementation, portfolio
-endpoint, collector, trading, scheduler, MCP, AI or broker writes are introduced.
+Step 3 required no new ADR. Step 4 adds ADR-020 for the offline adapter boundary,
+lossless parser dependency and local validation policies, applying ADR-017,
+ADR-019 and ADR-013. Historical accepted text is unchanged. Step 4 adds package
+source/tests and the pinned parser/lockfile, but no financial HTTP endpoint,
+collector, trading, scheduler, MCP, AI, token acquisition or broker writes.

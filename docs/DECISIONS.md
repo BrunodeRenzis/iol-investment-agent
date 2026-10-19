@@ -524,3 +524,109 @@ offline regression tests and vulnerability scanning remain required. No claim is
 made that these primitives encode IOL/BYMA validity, settlement, FX market basis,
 fees/taxes or permissions. Those await verified contracts and separately selected
 steps. All pre-Phase-9 prohibitions remain in force.
+
+## ADR-020 — Offline-first IOL read adapter and lossless wire numbers
+
+**Status:** Accepted for Phase 1 Step 4 offline implementation; live activation
+remains separately gated. Applies ADR-017 and ADR-019; no historical ADR is rewritten.
+
+**Date:** 2026-10-18
+
+### Context and alternatives
+
+The corrected official Swagger evidence in IOL_CONTRACT.md verifies four initial
+GET contracts but not REST read-only scopes or complete runtime/auth semantics.
+Financial fields arrive as JSON numbers; ordinary JSON.parse/response.json converts
+them to JS Number before a later decimal constructor could recover precision.
+
+Choose pinned **lossless-json 4.3.2** inside `packages/iol`. Its parser supports a
+raw numeric-token callback, bundled TypeScript declarations and CommonJS, with no
+runtime dependencies in the inspected npm metadata. Metadata was checked on
+2026-10-18 (published update 2026-10-16). Maintenance evidence is not a security
+guarantee. Source/declarations were inspected alongside the
+[official parser documentation](https://github.com/josdejong/lossless-json).
+
+The independent dependency review reported in the Step 4 follow-up examined the
+4.3.1 → 4.3.2 runtime diff. Version 4.3.2 was very recently released (two days before
+this decision) and remains pinned. Relevant runtime fixes include `__proto__`
+handling and rejection of `.5`. The review found no network, process execution,
+eval or dynamic-import behavior, and no transitive dependencies. This is scoped
+review evidence, not a general security guarantee.
+
+A custom JSON parser would reduce external dependencies but introduce security-
+critical grammar/escaping/Unicode maintenance. Native JSON.parse followed by a
+reviver/string conversion first creates rounded Numbers and violates our boundary.
+Even reviver source-text features do not meet the stronger no-Number-first rule.
+Regex parsing of raw JSON is rejected. The selected dependency is pinned/locked,
+isolated, tested and audited; no HTTP client dependency is added.
+
+### Decision
+
+Use the library's `parseNumber` callback to create private numeric lexemes, then
+strict schema decoders returning numeric strings. No arithmetic or Number
+conversion occurs. Preserve lexical scale/signed zero. Reject exponent notation,
+malformed/non-finite values, quoted numeric coercions and tokens beyond 100 integer
+or 100 fractional digits. Keep documented int32 fields distinct using lexical
+integer checks and BigInt range comparisons. Conflicting duplicate keys fail;
+identical duplicate values follow the pinned parser's acceptance behavior.
+
+Allow only GET on the exact origin `https://api.invertironline.com` and these paths:
+
+- `/api/v2/estadocuenta`
+- `/api/v2/portafolio/{pais}`
+- `/api/v2/{mercado}/Titulos/{simbolo}`
+- `/api/v2/{mercado}/Titulos/{simbolo}/CotizacionDetalle`
+
+No query parameters. Exact V2 country/market/response enums only; no implicit case
+conversion or aliases. Symbols use the local 1–32 uppercase ASCII alphanumeric
+routing grammar, not an IOL guarantee or current-instrument list. Reject all other
+origins, methods and raw path shapes before network/URL normalization. Disable
+redirect following and reject every redirect. Do not retry automatically.
+
+Expose a frozen facade with four named operations and provider DTO views. A public
+offline factory accepts synthetic raw fixture strings only. Internal transport
+requires injected fetch and stores a private non-serialized token; it is neither
+exported nor connected to the API. Unknown token scopes mean write-capable. No
+password loading/persistence, token acquisition/refresh/re-login policy or live
+factory is introduced. Package exports deny internal subpaths; they are not an
+OS sandbox against malicious same-process code. Other packages never receive
+credentials, generic requests or authenticated fetch.
+
+Sensitive schemas reject unknown fields; DTOs preserve account type, currency,
+settlement, instrument identity and raw timestamp text without inferred semantics.
+Account numbers are discarded. Require a local minimum of account collections and
+type/currency, balance settlement, portfolio country/holdings, full instrument
+identity, and quote identity. `ultimoPrecio` allows omission or null, including
+quotes with bid/ask data but no last trade; never substitute bid, ask or midpoint.
+Empty or one-sided `puntas` is preserved without reconstructing missing sides.
+Other documented fields allow omission or null without defaults. Swagger does not guarantee presence/nullability; these
+are fail-closed application requirements pending live evidence. Returned market/
+symbol or portfolio country must match the request.
+
+`volumenNominal` remains int32 in quote detail, unchanged. Confirm its actual
+representation/range during the gated user-run verification; do not coerce the
+excluded CotizacionModel's double contract into this model.
+
+Bound responses to 1 MiB, strings to 4,096 characters and arrays to 10,000 entries;
+require valid UTF-8. Use a 10-second local timeout (internally configurable from
+1–30,000 ms), abort on expiry, fixed sanitized error codes and no sensitive logs.
+These bounds are local controls, not provider guarantees. No error-body contract
+is invented. No aggregation, MEP/CCL mapping, execution price or timestamp/freshness
+claim is made. Semantically unresolved Money/Price conversion remains Step 5;
+offline tests prove direct string-to-financial-primitive precision where safe.
+
+### Consequences and live gate
+
+Offline tests cover allowlist denial before network, redirects, precision,
+schema/identity mismatches, safe errors, private token inspection/serialization and
+package exports. The existing test harness discovers IOL tests automatically.
+No real credential or IOL account call is used. API health behavior is unchanged.
+
+Strict enum spelling, symbol grammar, exponent rejection and required-field choices
+may reject real responses; do not weaken them silently. Resolve auth/runtime policy,
+obtain independent review and explicit user approval, then follow
+[IOL_MANUAL_VERIFICATION.md](IOL_MANUAL_VERIFICATION.md) using separately reviewed
+package-local manual wiring. Agents never run authenticated calls. Step 4 remains
+**OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING** until the reviewed
+user-run acceptance evidence exists. No Step 5+, financial endpoint or broker-write
+capability is authorized by this ADR.

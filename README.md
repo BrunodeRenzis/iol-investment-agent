@@ -11,10 +11,14 @@ targeted secret ignores, and explicit test discovery. Step 2 adds offline,
 broker-independent financial primitives in `packages/financial` using pinned
 bignumber.js 11.1.5 (ADR-019). Step 3 research is recorded in
 [the IOL contract evidence register](docs/IOL_CONTRACT.md), corrected against the
-official public Swagger v1/v2. Step 4 is ready for read-only adapter design using
-schemas, mocks and allowlist tests without real credentials. Real broker calls,
-Step 5 aggregation and persistent collection retain separate unresolved gates.
-No broker adapter was added.
+official public Swagger v1/v2. Step 4's read-only adapter is implemented offline in
+`packages/iol` (ADR-020), with four strict GET operations and lossless numeric
+ingestion. **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING.** The public
+factory accepts synthetic fixtures only; no live wiring, token acquisition or
+financial HTTP endpoint is enabled. Real broker verification, Step 5 aggregation
+and persistent collection retain separate gates. See the
+[adapter boundary](packages/iol/README.md) and
+[future user-run verification procedure](docs/IOL_MANUAL_VERIFICATION.md).
 
 Documentation v2.1 is adopted as canonical after independent review. Operational plans remain subordinate to `AGENTS.md` for policy and accepted, non-superseded ADRs in `docs/DECISIONS.md` for architecture. Future implementation begins only with a user-selected step in financial foundations and **read-only IOL integration**.
 

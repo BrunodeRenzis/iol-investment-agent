@@ -31,19 +31,23 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 - [x] record corrected Step 3 Swagger v1/v2 research, hashes, conflicts and phase-specific gaps in [IOL_CONTRACT.md](IOL_CONTRACT.md)
 - [x] verify initial read route/schema contracts and documented token fields for offline Step 4 design; runtime questions remain separately gated
 - [ ] Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes; separate read/write permissions whenever supported
-- [ ] if true read-only credentials/scopes are unavailable or unverified, treat the token as write-capable even with a read-only adapter
-- [ ] isolate that token strictly inside `packages/iol`; expose only a fixed allowlist of verified read-only endpoint paths with automated enforcement tests
-- [ ] no direct broker credentials in any other package or in scheduler, AI, MCP, trading research, or a generic HTTP client; future write credentials are separate whenever possible
+- [x] treat unknown REST scopes as write-capable; no real credentials loaded
+- [x] isolate mock-tested token handling inside `packages/iol`; enforce four verified read paths with automated denial-before-network and redirect tests (ADR-020)
+- [x] no credential-bearing public API or credentials in another package; no live runtime wiring introduced
 - [ ] check current IOL data terms for storage, historical retention, and redistribution before persistence/redistribution
-- [ ] typed read-only client/auth adapter, balances, portfolio, selected quotes
+- [x] offline typed read-only adapter for account state, portfolio, instrument and quote detail; exact V2 enums and lossless JSON numeric strings (ADR-020)
+- [ ] reviewed auth/runtime policy and package-local manual live wiring, explicit user approval and sanitized USER-RUN verification; Step 4 acceptance remains open
 - [ ] authentication/authorization before ANY financial/account endpoint, including loopback
 - [ ] normalized models, sensitive-schema field rejection, OAuth state/PKCE and CSRF where applicable
-- [ ] timeout/error policy, fixtures/mocks, offline business/risk tests
-- [ ] prove no broker-write code exists and execution package is absent
+- [x] bounded local timeout/no-retry policy, safe errors and synthetic offline adapter fixtures/tests
+- [x] no broker-write code or execution package in the current implementation
 
-Step 4 is ready for read-only adapter design with official schemas, mocks and no
-real credentials. Real broker calls require resolution of runtime/auth questions,
-lossless number ingestion, explicit enum casing and sanitized USER-RUN verification.
+Step 4: **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING**. Lossless
+parsing, explicit enum casing, allowlist and transport are tested offline only.
+Real broker calls require resolution of runtime/auth policy, independent review,
+explicit approval and the [USER-RUN procedure](IOL_MANUAL_VERIFICATION.md).
+Password persistence, refresh/re-login and a live factory remain unimplemented.
+Future write credentials must remain separate from read credentials whenever possible.
 Personal REST scopes remain UNKNOWN — must be verified; MCP permissions cannot
 substitute. Bind exact origin/host + method + path template + allowed path values/
 enums + allowed query names, with denial-before-network tests and no redirect escape.

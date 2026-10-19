@@ -11,7 +11,8 @@ This is the high-level operational sequence, subordinate to `AGENTS.md` for poli
 - App remains read-only, with no broker-write code, execution package, MCP or AI runtime.
 - Phase 1 Step 1: repository hardening implemented. No financial capability, dependencies, packages, hooks or deployment added by Step 1.
 - Phase 1 Step 2: offline financial primitives implemented in `packages/financial` (ADR-019).
-- Phase 1 Step 3: corrected official Swagger evidence recorded in [IOL_CONTRACT.md](IOL_CONTRACT.md). READY FOR READ-ONLY ADAPTER DESIGN with schemas/mocks and no real credentials. Runtime/auth, aggregation and collection gates remain separate. No broker adapter or financial endpoint introduced.
+- Phase 1 Step 3: corrected official Swagger evidence recorded in [IOL_CONTRACT.md](IOL_CONTRACT.md), establishing readiness for offline Step 4. Step 3 itself introduced no adapter or financial endpoint; runtime/auth, aggregation and collection gates remain separate.
+- Phase 1 Step 4: **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING** (ADR-020). Four allowlisted GET operations, strict DTOs, lossless numeric strings and mock-only tests are implemented in `packages/iol`. No live wiring, token acquisition or financial endpoint is enabled. Step 4 remains open pending the reviewed [user-run procedure](IOL_MANUAL_VERIFICATION.md).
 
 ## Documentation v2.1 canonical adoption
 
@@ -46,13 +47,14 @@ in [IOL_CONTRACT.md](IOL_CONTRACT.md). Later implementation remains separately g
 
 ### Steps 3–4: Verify contract, then implement read-only adapter
 
-The corrected Swagger inventory supports the four initial read candidates. Step 4
-can be separately selected for offline design/mocks/allowlist tests, without real
-credentials. Before real broker calls, resolve auth/runtime gaps, explicit casing
-handling and lossless numeric-text parsing, and obtain sanitized USER-RUN read-only
-verification. Agents must not use real credentials. The future allowlist binds
-exact origin/host, method, path template, allowed path values/enums and query names;
-deny outside it before network access and prevent redirect escape.
+The corrected Swagger inventory supports the four initial reads. Step 4 implements
+the offline adapter and deny-before-network allowlist, exact V2 enum casing,
+lossless JSON numeric strings, sanitized errors and redirect rejection (ADR-020).
+Before real broker calls, resolve the remaining auth/runtime policy, review the
+package-local manual wiring and obtain explicit approval for sanitized USER-RUN
+read-only verification. Agents must not use real credentials. Follow
+[IOL_MANUAL_VERIFICATION.md](IOL_MANUAL_VERIFICATION.md); this gate is not satisfied
+by mock tests. Step 5 remains unimplemented.
 
 Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes, alongside official auth/token lifecycle, endpoints, rate limits and sandbox behavior. Separate read/write permissions/scopes whenever supported; future write credentials must be separate whenever possible. If read-only scope capability is unavailable or unverified, treat the token as write-capable even with a read-only adapter. Step 4 isolates it strictly inside `packages/iol`, permits only a fixed allowlist of verified read-only endpoint paths, and adds automated allowlist enforcement tests. No other package, scheduler, AI, MCP, trading research, or generic HTTP client may obtain direct broker credentials. Check IOL terms for storage, historical retention and redistribution before persistence/redistribution. Then implement typed read-only schemas, safe transport/auth, timeouts, sanitized errors and mocks/fixtures. No write methods.
 

@@ -36,10 +36,16 @@ Verify current official auth, read-only endpoints, rates, token lifecycle, and s
 ## Step 4 — Phase 1 read-only IOL adapter
 
 Step 3's corrected official Swagger evidence is recorded in
-[IOL_CONTRACT.md](IOL_CONTRACT.md). **READY FOR READ-ONLY ADAPTER DESIGN** using the
-four verified route/schema candidates, mocks and deterministic tests without real
-credentials. Real broker calls remain gated by auth/runtime questions, explicit
-casing policy, lossless parsing and sanitized USER-RUN read-only verification.
+[IOL_CONTRACT.md](IOL_CONTRACT.md). **OFFLINE ADAPTER COMPLETE — REAL CALL
+VERIFICATION PENDING** (ADR-020). The four verified reads are implemented with
+strict allowlist enforcement, exact V2 enum casing, lossless numeric-string DTOs,
+private mock-tested transport, bounded timeouts and sanitized errors. The public
+factory accepts offline fixtures only. No live factory, token acquisition,
+password persistence/re-login decision or financial endpoint is introduced.
+Real broker calls remain gated by auth/runtime policy, independently reviewed
+package-local manual wiring and sanitized USER-RUN read-only verification under
+[IOL_MANUAL_VERIFICATION.md](IOL_MANUAL_VERIFICATION.md). Step 4 remains open until
+that acceptance gate is satisfied; mock success is not connectivity evidence.
 Agents must not use real credentials. MCP read-only consent does not prove REST
 scopes. Legacy V1 portfolio and operational-history routes are not initial candidates.
 
@@ -47,7 +53,7 @@ Use typed validated schemas, safe auth/token handling, timeouts, sanitized error
 
 Separate broker read/write permissions/scopes whenever supported. If true read-only credentials/scopes are unavailable or unverified, treat the token as write-capable, isolate it strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and add automated tests enforcing that allowlist. Never pass the credential/token to scheduler, AI, MCP, trading research, or a generic HTTP client. No other package may obtain direct broker credentials; expose only the narrow IOL adapter. This containment does not authorize broker-write code.
 
-Before Step 4 transport implementation, constrain the allowlist by exact trusted
+The implemented Step 4 transport constrains the allowlist by exact trusted
 origin/host, HTTP method, exact path template, allowed path values/enums and allowed
 query parameter names. Reject every non-allowlisted request before network access;
 redirects must not escape the trusted origin or the approved tuple. Add
@@ -58,8 +64,12 @@ security requirements and ADR-017.
 
 Ingest critical JSON financial number tokens losslessly as text, never through
 ordinary JS Number before constructing financial values. Preserve the published
-double/int32 discrepancies and test precision boundaries. Select the parser in
-Step 4; no dependency or implementation is introduced by Step 3 (ADR-019).
+double/int32 discrepancies and test precision boundaries. Step 4 selects pinned
+lossless-json 4.3.2 with a lexical-number callback (ADR-020), rejecting exponents
+and excessive precision instead of rounding. Provider DTOs preserve context and
+discard account numbers; no portfolio normalization or Money conversion is added.
+See `packages/iol/README.md` for local bounds and nullability policy. Step 3 itself
+remains evidence-only; ADR-019's financial domain API is unchanged.
 
 ## Step 5 — Phase 1 authentication and portfolio normalization
 

@@ -28,10 +28,16 @@ origin or tuple and test denial before transport. Path alone cannot distinguish 
 documented GET/DELETE collision on operations. No generic authenticated HTTP access. The
 token flow remains separately constrained and private to `packages/iol`. Portfolio
 and every other package remain excluded from direct credential access. These are
-future implementation requirements, not claims that an adapter already exists.
+requirements implemented offline in Step 4 under ADR-020. The four-operation
+facade has no credential parameters; its public factory accepts synthetic fixtures
+only. Authenticated transport is internal, explicitly injected and mock-tested,
+with a private non-serialized token, manual redirects, no retries, strict bounded
+payload parsing and errors containing only fixed categories. No real token loader
+or live factory exists. Account numbers are discarded from returned DTOs.
 
-Official routes/schemas now support offline Step 4 design, not unrestricted real
-calls. Resolve runtime/auth questions and obtain sanitized USER-RUN verification;
+Official routes/schemas support the offline implementation, not unrestricted real
+calls. Resolve runtime/auth questions and follow the reviewed, explicitly approved
+[USER-RUN verification procedure](IOL_MANUAL_VERIFICATION.md);
 agents must not use real credentials. Exclude `datos-perfil` from the initial
 allowlist because it exposes personal identifiers. Minimize account numbers in
 allowed responses, redact them from logs and keep them out of model prompts unless

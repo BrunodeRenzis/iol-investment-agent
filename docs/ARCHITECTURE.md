@@ -83,6 +83,16 @@ Owns authentication/token lifecycle, safe HTTP transport, typed provider schemas
 
 Separate broker read/write permissions/scopes whenever supported; Step 3 verifies whether IOL offers true read-only credentials/scopes. A token without verified true read-only scopes is write-capable regardless of the adapter's interface. Isolate it strictly inside `packages/iol`, expose only a fixed allowlist of verified read-only endpoint paths, and enforce it with automated tests. No other package, scheduler, AI, MCP, trading research, or generic HTTP client may receive direct broker credentials/tokens. Future write credentials remain separate from read credentials whenever possible.
 
+Step 4 implements this boundary offline (ADR-020): four named read operations,
+exact origin/method/path/enum validation before network, manual redirect rejection,
+private mock-tested authenticated transport and fixed safe error categories.
+The public factory accepts synthetic fixtures only; no live wiring or token
+acquisition is enabled. Pinned lossless-json 4.3.2 preserves numeric lexemes into
+string-backed IOL DTOs without Number intermediates. DTOs preserve broker context
+and discard account numbers, without domain normalization or aggregation. API
+composition remains health-only. See `packages/iol/README.md` and the gated
+`docs/IOL_MANUAL_VERIFICATION.md`; real connectivity remains unverified.
+
 ### Market data
 
 Owns append-only raw observations, versioned corrected/normalized datasets, immutable backtest dataset references, and provenance. Preserve source/provider, exchange, ingestion, and information-availability timestamps. Historical decisions use information available at the decision time. Define staleness per instrument/data class; never silently manufacture/backfill missing real-time observations. Later historical imports are distinct/versioned. Instrument identity includes ticker/security, market, currency, settlement, and security/CEDEAR/bond identity; AL30, AL30D, and AL30C are not interchangeable.
