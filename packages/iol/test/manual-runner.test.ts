@@ -6,6 +6,7 @@ import {
   type ManualIO,
 } from '../src/internal/manual-runner';
 import { validateManualRuntime } from '../src/internal/manual-preflight';
+import { MAX_ACCESS_TOKEN_LENGTH } from '../src/internal/token-policy';
 import {
   accountFixture,
   instrumentFixture,
@@ -273,24 +274,25 @@ void test('token expiry interrupts the authenticated idle session without refres
   assert.ok(!h.output.join('\n').includes(password));
 });
 
-void test('unsafe runtime fails before any prompt or request, with only a fixed category', async () => {
-  const h = harness([]);
-  assert.equal(
-    await runManualVerification(
-      h.io,
-      h.fetcher,
-      [],
-      [],
-      new AbortController().signal,
-      () => validateManualRuntime(['NODE_OPTIONS'], [], false),
-    ),
-    false,
-  );
-  assert.equal(h.prompts.length, 0);
-  assert.equal(h.calls.length, 0);
-  assert.ok(h.output.join('\n').includes('runtime_rejected'));
-  assert.ok(!h.output.join('\n').includes('NODE_OPTIONS'));
-});
+for (const key of ['NODE_OPTIONS', 'NODE_USE_SYSTEM_CA', 'node_use_system_ca'])
+  void test(`unsafe runtime ${key} fails before any prompt or request, with only a fixed category`, async () => {
+    const h = harness([]);
+    assert.equal(
+      await runManualVerification(
+        h.io,
+        h.fetcher,
+        [],
+        [],
+        new AbortController().signal,
+        () => validateManualRuntime([key], [], false),
+      ),
+      false,
+    );
+    assert.equal(h.prompts.length, 0);
+    assert.equal(h.calls.length, 0);
+    assert.ok(h.output.join('\n').includes('runtime_rejected'));
+    assert.ok(!h.output.join('\n').includes(key));
+  });
 
 void test('reads enforce 1 -> 2 -> 3 -> 4, with cancellation and no automatic next action', async () => {
   for (const choices of [
@@ -313,26 +315,35 @@ void test('reads enforce 1 -> 2 -> 3 -> 4, with cancellation and no automatic ne
   assert.equal(h.calls.length, 4);
 });
 
-void test('failure after possible issuance warns without retrying or exposing the token body', async () => {
-  const h = harness([...login, 'AUTENTICAR SESION APROBADA']);
-  let calls = 0;
-  const ok = await runManualVerification(
-    h.io,
-    () => {
-      calls++;
-      return Promise.resolve(response(auth.replace('900', '0')));
-    },
-    [],
-    [],
-    new AbortController().signal,
-    () => validateManualRuntime([], [], false),
-  );
-  assert.equal(ok, false);
-  assert.equal(calls, 1);
-  assert.ok(h.output.join('\n').includes('token remoto'));
-  assert.ok(!h.output.join('\n').includes(auth));
-  assert.ok(!h.output.join('\n').includes('synthetic-runner-access'));
-});
+for (const body of [
+  auth.replace('900', '0'),
+  auth.replace(
+    'synthetic-runner-refresh',
+    'R'.repeat(MAX_ACCESS_TOKEN_LENGTH + 1),
+  ),
+])
+  void test('failure after possible issuance warns without retrying or exposing the token body', async () => {
+    const h = harness([...login, 'AUTENTICAR SESION APROBADA']);
+    let calls = 0;
+    const ok = await runManualVerification(
+      h.io,
+      () => {
+        calls++;
+        return Promise.resolve(response(body));
+      },
+      [],
+      [],
+      new AbortController().signal,
+      () => validateManualRuntime([], [], false),
+    );
+    assert.equal(ok, false);
+    assert.equal(calls, 1);
+    assert.deepEqual(h.prompts, ['action', 'username', 'password']);
+    assert.ok(h.output.join('\n').includes('token remoto'));
+    assert.ok(!h.output.join('\n').includes(auth));
+    assert.ok(!h.output.join('\n').includes('synthetic-runner-access'));
+    assert.ok(!h.output.join('\n').includes('RRRR'));
+  });
 
 void test('runner prints only the trusted schema diagnostic and stops before subsequent reads', async () => {
   const h = harness([...login, '1', '2'], () =>

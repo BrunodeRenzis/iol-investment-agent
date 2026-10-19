@@ -854,3 +854,16 @@ No real credentials or IOL requests were used. **REAL CALL NOT YET EXECUTED.**
 This hardening does not authorize Step 5, persistence, trading, broker writes or
 packages/execution. Independent review and explicit user approval/execution remain
 the real-session gate.
+
+### ADR-022 addendum — requested pre-verification corrections
+
+The user-requested offline correction supersedes only the generic string bound
+for optional refresh_token: validate its string type with a dedicated
+MAX_REFRESH_TOKEN_LENGTH = MAX_ACCESS_TOKEN_LENGTH (16,384 characters), then discard
+it without exporting, retaining in the session, printing or persisting it. Keep
+the 64 KiB auth-body cap and terminate on overflow or any post-issuance failure
+without retry. No refresh operation is introduced.
+
+Add NODE_USE_SYSTEM_CA to the runtime blocklist under the same names-only,
+case-insensitive presence check, before any credential prompt. No value is read
+or printed. These two corrections do not execute a real call or advance Step 5.

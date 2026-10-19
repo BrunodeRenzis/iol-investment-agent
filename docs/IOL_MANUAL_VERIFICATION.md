@@ -46,7 +46,7 @@ terminal failures use terminal_unavailable, runtime restrictions runtime_rejecte
 
 The preflight inspects environment variable names only and rejects presence,
 including empty values and lowercase aliases, of NODE_OPTIONS,
-NODE_TLS_REJECT_UNAUTHORIZED, NODE_EXTRA_CA_CERTS, NODE_USE_ENV_PROXY, HTTPS_PROXY,
+NODE_TLS_REJECT_UNAUTHORIZED, NODE_EXTRA_CA_CERTS, NODE_USE_SYSTEM_CA, NODE_USE_ENV_PROXY, HTTPS_PROXY,
 HTTP_PROXY, ALL_PROXY, NODE_V8_COVERAGE, SSLKEYLOGFILE, NODE_REDIRECT_WARNINGS,
 VSCODE_INSPECTOR_OPTIONS and VSCODE_JS_DEBUG_OPTIONS. It also rejects an active
 inspector.url() or any process.execArgv option, including inspect/inspect-brk,
@@ -90,7 +90,9 @@ refresh token is discarded; expiry or any auth error ends the session.
 
 Access-token validation uses the same dedicated 16,384-character ASCII bearer
 limit as the read transport. It does not use the generic string decoder's 4,096
-limit. Other optional token-response strings retain their existing bound. No token
+limit. The optional refresh_token has a dedicated 16,384-character limit and is
+discarded after validation; overflow ends the session without retry. Other optional
+token-response strings retain their existing bound. The 64 KiB body cap is unchanged. No token
 is printed on acceptance or rejection. These are local limits, not IOL guarantees.
 
 ## One explicit action per read

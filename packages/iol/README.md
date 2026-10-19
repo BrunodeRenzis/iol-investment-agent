@@ -192,7 +192,9 @@ and array indices are never included; unrecognized paths fall back to payload. S
 `lossless_validated` is parser/schema evidence, not a provider precision guarantee.
 No credentials, tokens, account numbers or complete DTO/raw bodies reach output.
 Access tokens share a dedicated 16,384-character bearer limit in auth decoding
-and read transport (not the generic 4,096-character string decoder). Other optional
+and read transport (not the generic 4,096-character string decoder). The discarded
+optional refresh_token also has a dedicated 16,384-character bound; overflow stops
+without retry. The 64 KiB token-body cap is unchanged. Other optional
 strings keep their existing bound. Any failure during/after POST /token may leave
 a remote token active even without a local session. No automatic retry; dispose()
 is not revocation. See the runbook for waiting/official-revocation policy, runtime

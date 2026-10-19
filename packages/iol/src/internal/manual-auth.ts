@@ -3,12 +3,19 @@ import { IolError } from '../error';
 import { int32, parseWireJson, stringValue } from './json';
 import { AuthenticatedReadTransport, type IolTransport } from './transport';
 import type { ReadRequest } from './allowlist';
-import { accessTokenValue } from './token-policy';
-import { payloadFailure, schemaDiagnostic } from './schema-diagnostic';
+import { accessTokenValue, MAX_ACCESS_TOKEN_LENGTH } from './token-policy';
+import {
+  payloadFailure,
+  requiredKind,
+  schemaDiagnostic,
+  schemaFailure,
+} from './schema-diagnostic';
 
 const TOKEN_URL = 'https://api.invertironline.com/token';
 const AUTH_TIMEOUT_MS = 10_000;
 const MAX_TOKEN_BODY_BYTES = 65_536;
+// Discarded optional token: dedicated bound, independent of generic strings.
+const MAX_REFRESH_TOKEN_LENGTH = MAX_ACCESS_TOKEN_LENGTH;
 export const MANUAL_SESSION_MS = 300_000;
 
 /** Internal handle: never returns an access token or refresh token. */
@@ -76,12 +83,13 @@ function decodeSession(
   ];
   if (Object.keys(source).some((key) => !allowed.includes(key)))
     throw new IolError('invalid_payload');
-  for (const key of [
-    'refresh_token',
-    '.issued',
-    '.expires',
-    '.refreshexpires',
-  ]) {
+  if (Object.hasOwn(source, 'refresh_token')) {
+    if (typeof source.refresh_token !== 'string')
+      throw schemaFailure(requiredKind(source.refresh_token), 'token');
+    if (source.refresh_token.length > MAX_REFRESH_TOKEN_LENGTH)
+      throw schemaFailure('range', 'token');
+  }
+  for (const key of ['.issued', '.expires', '.refreshexpires']) {
     if (Object.hasOwn(source, key)) stringValue(source[key]);
   }
   // Presence/strings only. No refresh lifetime or date semantics inferred.

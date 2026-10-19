@@ -225,6 +225,89 @@ void test('shorter expires_in ends the session; pre-cancelled auth never calls f
   assert.equal(calls, 1);
 });
 
+void test('optional refresh token accepts its dedicated limit and is discarded without exposure or refresh', async () => {
+  for (const length of [
+    4097,
+    MAX_ACCESS_TOKEN_LENGTH - 1,
+    MAX_ACCESS_TOKEN_LENGTH,
+  ]) {
+    const refreshToken = 'R'.repeat(length);
+    let calls = 0;
+    const secret = credentials();
+    const fetcher: typeof fetch = () => {
+      calls++;
+      return Promise.resolve(
+        jsonResponse(
+          tokenFixture.replace('synthetic-refresh-sentinel', refreshToken),
+        ),
+      );
+    };
+    const session = await secret.authenticate(
+      fetcher,
+      new AbortController().signal,
+    );
+    try {
+      for (const value of [secret, session]) {
+        assert.ok(
+          !inspect(value, { showHidden: true, customInspect: false }).includes(
+            refreshToken,
+          ),
+        );
+        assert.ok(!inspect(value).includes(refreshToken));
+        assert.ok(!JSON.stringify(value).includes(refreshToken));
+        assert.equal('refresh_token' in value, false);
+      }
+    } finally {
+      session.dispose();
+    }
+    await assert.rejects(session.read(makeRequest('accountState')), safeError);
+    await assert.rejects(
+      secret.authenticate(fetcher, new AbortController().signal),
+      safeError,
+    );
+    assert.equal(calls, 1);
+  }
+});
+
+void test('refresh token overflow and invalid types stop after issuance without leaking or retrying', async () => {
+  for (const value of [
+    'R'.repeat(MAX_ACCESS_TOKEN_LENGTH + 1),
+    null,
+    123,
+    {},
+  ]) {
+    let calls = 0;
+    const secret = credentials();
+    const fetcher: typeof fetch = () => {
+      calls++;
+      return Promise.resolve(
+        jsonResponse(
+          tokenFixture.replace(
+            '"synthetic-refresh-sentinel"',
+            JSON.stringify(value),
+          ),
+        ),
+      );
+    };
+    await assert.rejects(
+      secret.authenticate(fetcher, new AbortController().signal),
+      (error: unknown) => {
+        assert.ok(safeError(error));
+        assert.ok(error instanceof IolError);
+        assert.equal(error.code, 'invalid_payload');
+        assert.ok(!inspect(error, { showHidden: true }).includes('RRRR'));
+        assert.ok(!JSON.stringify(error).includes('RRRR'));
+        return true;
+      },
+    );
+    await assert.rejects(
+      secret.authenticate(fetcher, new AbortController().signal),
+      safeError,
+    );
+    assert.equal(calls, 1);
+  }
+});
+
 void test('issued and transported access tokens share the same dedicated length limit', async () => {
   for (const length of [MAX_ACCESS_TOKEN_LENGTH - 1, MAX_ACCESS_TOKEN_LENGTH]) {
     const token = 'Q'.repeat(length);
