@@ -143,8 +143,15 @@ implementation that ignores manual redirects or captures credentials.
 
 Prepared offline only; no authenticated real request has been executed. After
 independent review and Bruno's explicit real-session approval, the root command
-`npm run iol:verify:manual` launches `dist/manual.js` separately from the API.
-No env/file credential loading or CLI credential options exist. Both username
+`npm run iol:verify:manual` first compiles this package using local tsc and only
+on success launches `dist/manual.js` separately from the API. No build-time network;
+stale output is not run after a build failure.
+No env/file credential loading or CLI credential options exist. The sole env
+inspection is ADR-022's defensive runtime-name preflight before prompts and requests;
+it never reads values. Inspector, Node options and configured proxy/TLS/instrumentation
+names fail with runtime_rejected. Use normal PowerShell/Windows Terminal, never
+JavaScript Debug Terminal, VS Code Auto Attach or a debugger. Non-TTY Git Bash/
+mintty fails with terminal_unavailable. Both username
 and password use hidden terminal input. TTY input/output is mandatory, pasted/
 batched input is rejected and terminal mode is restored on cancellation/error.
 Use a private terminal without recording, debug/preload/HTTP tracing or diagnostic
@@ -161,7 +168,8 @@ inferred semantics, especially .refreshexpires. Refresh token is discarded.
 
 After auth, hidden actions 1–4 choose instrument, quote detail, account state and
 portfolio, respectively; `salir` exits. Targets are fixed bCBA/AL30 and argentina.
-One action = at most one read; each action runs once, maximum four reads. Invalid/
+One action = at most one read. Actions must follow exactly 1 -> 2 -> 3 -> 4;
+no skipping, repeating or automatic advance. Cancellation is allowed at every step. Invalid/
 repeated actions or any failure end the session, never retry or advance. No URL,
 symbol or market menu, writes, history, profile, polling or automatic refresh.
 
@@ -174,13 +182,22 @@ Auth uses a 10-second timeout, 64 KiB body cap and strict UTF-8/JSON media types
 reads keep the existing 10-second/1 MiB limits. No error-body parsing or Retry-After
 interpretation. These are local policies, not assumed provider guarantees.
 
-Per-operation summaries contain fixed field names, type/presence/null information,
-counts and validation labels only. No values of balances, holdings, amounts,
+Per-operation summaries contain fixed field names, type labels, boolean
+presence/null indicators, none/present collections and validation labels only.
+No account/holding/depth or per-field occurrence counts are emitted. No values of balances, holdings, amounts,
 prices, timestamps or numeric lexemes are printed. Invalid schemas produce only
-a fixed category, not raw unknown fields. Synthetic tests verify lexeme precision;
+a fixed category plus an allowlisted path and one closed failure kind (missing,
+null, type, enum, exponent, range, unknown_fields, malformed). Unknown keys/values
+and array indices are never included; unrecognized paths fall back to payload. Synthetic tests verify lexeme precision;
 `lossless_validated` is parser/schema evidence, not a provider precision guarantee.
 No credentials, tokens, account numbers or complete DTO/raw bodies reach output.
-See the runbook for remaining unknowns, incident/rotation steps and acceptance.
+Access tokens share a dedicated 16,384-character bearer limit in auth decoding
+and read transport (not the generic 4,096-character string decoder). Other optional
+strings keep their existing bound. Any failure during/after POST /token may leave
+a remote token active even without a local session. No automatic retry; dispose()
+is not revocation. See the runbook for waiting/official-revocation policy, runtime
+unknowns, incident steps and acceptance. ADR-022 supersedes the affected ADR-021
+policies without rewriting that historical record.
 
 ## Validation
 

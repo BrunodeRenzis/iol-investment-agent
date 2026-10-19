@@ -13,7 +13,7 @@
   "scripts": {
     "build": "npm run build --workspace=@iol-agent/financial && npm run build --workspace=@iol-agent/iol && npm run build --workspace=@iol-agent/api",
     "start": "node --env-file-if-exists=.env apps/api/dist/main.js",
-    "iol:verify:manual": "node packages/iol/dist/manual.js",
+    "iol:verify:manual": "npm run build --workspace=@iol-agent/iol && node packages/iol/dist/manual.js",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

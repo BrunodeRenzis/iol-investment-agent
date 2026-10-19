@@ -1,8 +1,11 @@
 import { createTerminalIO } from './internal/manual-terminal';
 import { runManualVerification } from './internal/manual-runner';
+import { assertManualRuntime } from './internal/manual-preflight';
+import { IolError } from './error';
 
 /** Separate user-run process. Never imported by the package root or API. */
 async function main(): Promise<void> {
+  assertManualRuntime();
   const stop = new AbortController();
   const cancel = (): void => stop.abort();
   process.once('SIGINT', cancel);
@@ -29,9 +32,15 @@ async function main(): Promise<void> {
 }
 
 if (require.main === module) {
-  void main().catch(() => {
+  void main().catch((error: unknown) => {
     process.stderr.write(
-      'Verificación detenida. Se requiere una terminal local privada; ningún detalle sensible se imprime.\n',
+      JSON.stringify({
+        status: 'stopped',
+        category:
+          error instanceof IolError
+            ? new IolError(error.code).code
+            : 'terminal_unavailable',
+      }) + '\n',
     );
     process.exitCode = 1;
   });

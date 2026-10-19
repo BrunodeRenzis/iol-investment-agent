@@ -16,6 +16,13 @@ This is the high-level operational sequence, subordinate to `AGENTS.md` for poli
 
 ## Documentation v2.1 canonical adoption
 
+Step 4 final preflight (ADR-022) adds runtime environment-name/inspector checks,
+strict 1 -> 2 -> 3 -> 4 manual progression, known-path sanitized diagnostics,
+summaries without exact portfolio counts, a shared access-token limit and
+mandatory local rebuild before launch. Post-issuance failure follows the explicit
+waiting/incident policy. **REAL CALL NOT YET EXECUTED.** Step 4 remains open;
+Step 5 remains unimplemented. No execution approval is inferred from preparation.
+
 Documentation v2.1 is adopted as canonical after independent review. The final clarifications requested by the user are incorporated; the documentation-review and user-acceptance gates are complete. This status grants no permission to begin another phase.
 
 AGENTS.md remains the policy authority, accepted non-superseded ADRs remain the architectural authority, and this master plan remains subordinate operational guidance. Future changes still follow review and validation; commits/pushes remain user-controlled, and hosted CI must remain green.

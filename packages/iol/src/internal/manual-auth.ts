@@ -3,6 +3,8 @@ import { IolError } from '../error';
 import { int32, parseWireJson, stringValue } from './json';
 import { AuthenticatedReadTransport, type IolTransport } from './transport';
 import type { ReadRequest } from './allowlist';
+import { accessTokenValue } from './token-policy';
+import { payloadFailure, schemaDiagnostic } from './schema-diagnostic';
 
 const TOKEN_URL = 'https://api.invertironline.com/token';
 const AUTH_TIMEOUT_MS = 10_000;
@@ -59,7 +61,7 @@ function decodeSession(
   fetcher: typeof fetch,
   elapsedMs: number,
 ): ManualReadSession {
-  const value = parseWireJson(body);
+  const value = parseWireJson(body, 'token');
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new IolError('invalid_payload');
   const source = value as Record<string, unknown>;
@@ -91,7 +93,7 @@ function decodeSession(
   // Number here is bounded time metadata, never financial arithmetic.
   const lifetimeMs = Number(seconds > 300n ? 300n : seconds) * 1000 - elapsedMs;
   if (lifetimeMs <= 0) throw new IolError('authentication_failure');
-  const accessToken = stringValue(source.access_token);
+  const accessToken = accessTokenValue(source.access_token);
   return new MemorySession(accessToken, fetcher, lifetimeMs);
 }
 
@@ -229,6 +231,7 @@ export class PasswordGrantCredentials {
       if (controller.signal.aborted) throw new IolError('timeout');
       return decodeSession(responseBody, fetcher, performance.now() - started);
     } catch (error: unknown) {
+      if (schemaDiagnostic(error)) throw payloadFailure(error, 'token');
       throw new IolError(
         error instanceof IolError ? error.code : 'authentication_failure',
       );

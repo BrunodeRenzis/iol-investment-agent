@@ -116,7 +116,7 @@ void test('terminal errors are sanitized and detach listeners even if mode setup
   };
   await assert.rejects(
     tty.io.readHidden('password', new AbortController().signal),
-    { message: 'IOL adapter: authentication_failure' },
+    { message: 'IOL adapter: terminal_unavailable' },
   );
   assert.equal(tty.input.listenerCount('data'), 0);
 });

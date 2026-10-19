@@ -19,7 +19,7 @@ export function createTerminalIO(
     input.isRaw ||
     typeof input.setRawMode !== 'function'
   )
-    throw new IolError('authentication_failure');
+    throw new IolError('terminal_unavailable');
   return {
     write: (message) => {
       output.write(message + '\n');
@@ -27,7 +27,7 @@ export function createTerminalIO(
     readHidden: (field, signal) =>
       new Promise<string>((resolve, reject) => {
         if (signal.aborted) {
-          reject(new IolError('authentication_failure'));
+          reject(new IolError('terminal_unavailable'));
           return;
         }
         let value = '';
@@ -47,11 +47,11 @@ export function createTerminalIO(
             input.setRawMode(false);
             output.write('\n');
           } catch {
-            reject(new IolError('authentication_failure'));
+            reject(new IolError('terminal_unavailable'));
             return;
           }
           if (result === undefined)
-            reject(new IolError('authentication_failure'));
+            reject(new IolError('terminal_unavailable'));
           else resolve(result);
         };
         const fail = (): void => finish();

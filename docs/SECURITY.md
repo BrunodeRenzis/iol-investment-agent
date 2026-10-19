@@ -37,7 +37,9 @@ adds private package-local manual wiring and a separate fixed-origin POST /token
 password grant. No public live factory exists. Account numbers are discarded.
 
 Broker username/password/access/refresh tokens NEVER go in .env, environment,
-CLI arguments, shell history, files, logs or prompts. The API keeps .env for general
+CLI arguments, shell history, files, logs or prompts. The only package env access
+is ADR-022's defensive Object.keys(process.env) preflight: runtime names only,
+never values or broker configuration. The API keeps .env for general
 settings but rejects any IOL_* key except exact IOL_READ_ONLY (case-insensitive
 prefix check, no key/value echo). This catches misconfiguration, not OS inheritance;
 never put broker secrets in the environment in the first place. Origins are fixed;
@@ -45,21 +47,29 @@ unsupported client-id/client-secret and origin placeholders have been removed.
 
 The manual runner is a separate local process, never imported by the API. Both
 username and password use hidden TTY input; no pipes, echo, history or pasted/batched
-input. Explicit CLI/Node options are rejected; trusted execution must also exclude
+input. Explicit CLI/Node options and active inspector are rejected. Runtime env names
+for Node instrumentation, TLS overrides and proxies are blocked even if empty
+(ADR-022). Trusted execution must also exclude
 debug/preload/recording/diagnostic instrumentation. Startup performs no request.
 An explicit auth action can make one POST with only username/password/grant_type;
-each later action can make one of four fixed GETs, once each. No generic URL input.
+each later action can make one fixed GET in mandatory instrument -> quote detail
+-> account state -> portfolio order, with separate confirmation at every step. No generic URL input.
 REST tokens remain write-capable by assumption. Access token only in memory,
 refresh token discarded; no refresh, automatic re-login, retries, polling or cache.
 Five-minute maximum session and conservative expires_in deadline; 10-second
 requests, 64 KiB token body, 1 MiB read body, strict UTF-8/JSON media types.
 Every error, redirect, non-200 status or expiry stops. Unknown error bodies and
-Retry-After are not interpreted. Output projects fixed structural fields/counts
-and validation categories only, never raw bodies, identifiers or financial values.
+Retry-After are not interpreted. Output projects fixed structural fields, boolean/none/present indicators and
+validation categories only, never exact portfolio/account counts, raw bodies,
+identifiers or financial values. Schema errors may include only allowlisted paths
+and closed failure kinds; unknown keys/values and indices never appear (ADR-022).
 
 Dispose/abort on exit, cancellation, expiry or failure; release reachable secret
 references without claiming cryptographic JavaScript memory erasure or provider
-revocation. On suspected exposure, stop and use verified official IOL channels
+revocation. Both auth decoding and transport use the same dedicated 16,384-character
+access-token limit. Failure during/after token issuance can leave an active remote
+token: do not retry; follow the runbook's lifetime/official-revocation waiting
+policy, never claim dispose() revokes it. On suspected exposure, stop and use verified official IOL channels
 for revocation/credential rotation; do not share payloads or resume without review.
 The runner and local native-fetch redirect tests were prepared offline only:
 **REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED**.

@@ -37,6 +37,7 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 - [ ] check current IOL data terms for storage, historical retention, and redistribution before persistence/redistribution
 - [x] offline typed read-only adapter for account state, portfolio, instrument and quote detail; exact V2 enums and lossless JSON numeric strings (ADR-020)
 - [x] Step 4B auth/runtime policy and manual runner prepared with offline tests (ADR-021); no real session executed
+- [x] final offline preflight hardening (ADR-022): runtime restrictions, ordered reads, private diagnostics/count-free summaries, shared token limit and fresh build
 - [ ] independent review, explicit real-session approval and sanitized USER-RUN acceptance; Step 4 remains open
 - [ ] authentication/authorization before ANY financial/account endpoint, including loopback
 - [ ] normalized models, sensitive-schema field rejection, OAuth state/PKCE and CSRF where applicable

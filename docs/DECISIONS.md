@@ -753,3 +753,104 @@ URL mapping never changes production allowlists. No live invocation by an agent.
 Step 4 stays open until reviewed, sanitized user-run acceptance evidence exists.
 No normalization, portfolio domain, collector, scheduler, trading, MCP/AI runtime,
 broker writes or execution package is introduced.
+
+## ADR-022 — Final manual preflight, private diagnostics and ordered reads
+
+**Status:** Accepted for user-requested offline Step 4 hardening only. Supplements
+ADR-017/ADR-020 and supersedes only ADR-021's unrestricted read ordering, exact
+summary counts, generic access-token string bound and blanket no-env-inspection
+statements. Historical ADR text is retained. Real execution requires separate user
+approval; Step 4 remains open and Step 5 remains unimplemented.
+
+**Date:** 2026-10-19
+
+### Decision
+
+Before any prompt, the local entry point checks inspector.url(), explicit Node
+arguments and environment variable NAMES only. Repeat the preflight before token
+acquisition and every read. Reject active inspector, all process.execArgv options
+(including inspect/inspect-brk, require/import, loader/hooks, env-file and TLS/debug
+options), and presence of NODE_OPTIONS, NODE_TLS_REJECT_UNAUTHORIZED,
+NODE_EXTRA_CA_CERTS, NODE_USE_ENV_PROXY, HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.
+Also reject NODE_V8_COVERAGE, SSLKEYLOGFILE, NODE_REDIRECT_WARNINGS,
+VSCODE_INSPECTOR_OPTIONS and VSCODE_JS_DEBUG_OPTIONS. Match names case-insensitively;
+even empty entries fail closed. Do not read values, emit names/values in errors,
+dump environment or use any variable to configure credentials/URLs. The single
+process.env access in manual-preflight.ts is Object.keys(process.env); tests
+enforce that exception and forbid general env access elsewhere in packages/iol.
+Use fixed runtime_rejected and terminal_unavailable categories.
+
+Use normal PowerShell/Windows Terminal. Never JavaScript Debug Terminal, VS Code
+Auto Attach, debugger, preloads, tracing or terminal recording. Git Bash/mintty is
+unsupported when Node does not expose a TTY. Preflight detects these observable
+conditions before credentials, but cannot undo malicious preload code that has
+already executed or attest an unmodified runtime/OS. Trusted local execution and
+review remain prerequisites; no sandbox or cryptographic secrecy claim is made.
+
+Schema failures may carry ONLY an independently allowlisted schema path and one
+closed kind: missing, null, type, enum, exponent, range, unknown_fields, malformed.
+Paths use fixed field names and [] for arrays, never indices, response keys,
+symbols or rejected values. Diagnostics are associated privately with parser/
+decoder errors in a WeakMap, not copied from arbitrary error properties/causes.
+An unknown/nonallowlisted path falls back to payload. Unknown fields disclose
+only unknown_fields, not their names, values or count. Financial numeric tokens
+remain lexical, without Number conversion: JSON grammar parsing is followed by
+bounded decimal/exponent validation before returning any parsed value. Array,
+int32, enum and required-field checks retain their strict acceptance policies.
+No schema bypass, raw-body output or permissive fallback is added.
+
+Successful summaries contain only fixed schema field names, boolean presence/null
+observations, type labels and none/present collection indicators. Remove exact
+account/holding/depth counts and per-field occurrence counts, which could reveal
+portfolio size. No financial quantities or identifiers are emitted. Schema
+diagnostics and summaries are advisory structural evidence, never normalization
+or a claim of runtime compatibility before verification.
+
+Use a single dedicated MAX_ACCESS_TOKEN_LENGTH = 16,384 ASCII bearer characters
+and validator in both token-response decoding and authenticated read transport.
+Reject oversize/malformed tokens without printing them. This local resource limit
+is not a provider guarantee. Other optional response strings retain their existing
+4,096-character bound; refresh token is still discarded. Auth response cap stays
+64 KiB; no refresh/re-login/retry or new token fields are introduced.
+
+Any failure during or after POST /token can leave a remotely issued token active,
+including timeout, invalid response content-type/schema/length, cancellation or
+failure before session installation. Stop; never retry automatically. The runner
+emits a fixed warning when auth was attempted but a session was not established.
+Treat the remote token as potentially active and follow the incident procedure.
+Before another explicit manual attempt, respect the officially documented access
+lifetime (15 minutes in the existing IOL_CONTRACT.md A evidence) from the latest
+possible issuance, or use an official revocation mechanism if later verified.
+If the issuance window or applicable lifetime is uncertain, seek official guidance
+before retrying. Five-minute local expiry and dispose() do NOT revoke a token;
+no revocation capability is inferred or implemented.
+
+Enforce exactly 1 instrument -> 2 quote detail -> 3 account state -> 4 portfolio.
+Each step requires a separate explicit action. Out-of-order/repeated/invalid
+actions terminate without that read; cancellation is always available. No auto
+advance, probing, background activity or relaxed endpoint allowlist.
+
+The root manual command rebuilds packages/iol with the pinned local tsc before
+launching dist/manual.js, using && so a failed compile cannot run stale output.
+Compilation performs no network request. Offline scratch-workspace tests prove
+fresh output replaces stale output and build failure prevents execution.
+
+For old .env files, remove legacy IOL\_\* broker credential/client/origin entries
+before starting apps/api; only IOL_READ_ONLY is supported. Do not print values or
+read them from the runner. The preflight's runtime-variable name check is the
+only narrowly approved environment inspection, not a broker credential loader.
+
+### Test network boundary and acceptance
+
+Tests use synthetic injected transports or numeric loopback servers. A universal
+network guard was evaluated but is not introduced: patching fetch would not cover
+http/https/net/TLS, native modules or child processes, and no OS egress policy is
+configured by this change. The harness therefore does NOT guarantee that every
+future external-network attempt fails. Maintain offline review requirements and
+consider a separately reviewed OS/CI egress restriction if that guarantee is needed.
+Dependency installation/audit are separate registry operations, not IOL tests.
+
+No real credentials or IOL requests were used. **REAL CALL NOT YET EXECUTED.**
+This hardening does not authorize Step 5, persistence, trading, broker writes or
+packages/execution. Independent review and explicit user approval/execution remain
+the real-session gate.

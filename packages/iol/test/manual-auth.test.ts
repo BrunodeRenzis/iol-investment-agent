@@ -4,6 +4,8 @@ import { test } from 'node:test';
 import { IolError } from '../src';
 import { PasswordGrantCredentials } from '../src/internal/manual-auth';
 import { makeRequest } from '../src/internal/allowlist';
+import { AuthenticatedReadTransport } from '../src/internal/transport';
+import { MAX_ACCESS_TOKEN_LENGTH } from '../src/internal/token-policy';
 
 // Deliberately synthetic sentinels, never loaded from the environment/provider.
 export const tokenFixture =
@@ -220,5 +222,48 @@ void test('shorter expires_in ends the session; pre-cancelled auth never calls f
     credentials().authenticate(fetcher, stop.signal),
     safeError,
   );
+  assert.equal(calls, 1);
+});
+
+void test('issued and transported access tokens share the same dedicated length limit', async () => {
+  for (const length of [MAX_ACCESS_TOKEN_LENGTH - 1, MAX_ACCESS_TOKEN_LENGTH]) {
+    const token = 'Q'.repeat(length);
+    const fetcher: typeof fetch = () =>
+      Promise.resolve(
+        jsonResponse(tokenFixture.replace('synthetic-access-sentinel', token)),
+      );
+    const session = await credentials().authenticate(
+      fetcher,
+      new AbortController().signal,
+    );
+    const transport = new AuthenticatedReadTransport(token, fetcher);
+    try {
+      assert.ok(!inspect(session).includes(token));
+      assert.ok(!JSON.stringify(transport).includes(token));
+    } finally {
+      session.dispose();
+      transport.dispose();
+    }
+  }
+  const token = 'Q'.repeat(MAX_ACCESS_TOKEN_LENGTH + 1);
+  const safe = (error: unknown): boolean => {
+    assert.ok(error instanceof IolError);
+    assert.equal(error.code, 'authentication_failure');
+    assert.ok(!inspect(error).includes(token));
+    assert.ok(!JSON.stringify(error).includes(token));
+    return true;
+  };
+  let calls = 0;
+  const fetcher: typeof fetch = () => {
+    calls++;
+    return Promise.resolve(
+      jsonResponse(tokenFixture.replace('synthetic-access-sentinel', token)),
+    );
+  };
+  await assert.rejects(
+    credentials().authenticate(fetcher, new AbortController().signal),
+    safe,
+  );
+  assert.throws(() => new AuthenticatedReadTransport(token, fetcher), safe);
   assert.equal(calls, 1);
 });

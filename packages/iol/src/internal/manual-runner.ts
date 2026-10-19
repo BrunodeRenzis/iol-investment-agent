@@ -11,6 +11,8 @@ import {
   portfolioSummary,
   quoteSummary,
 } from './manual-summary';
+import { assertManualRuntime } from './manual-preflight';
+import { schemaDiagnostic } from './schema-diagnostic';
 
 export type InputField = 'action' | 'username' | 'password';
 export interface ManualIO {
@@ -25,9 +27,12 @@ export async function runManualVerification(
   args: readonly string[],
   execArgs: readonly string[],
   stopSignal: AbortSignal,
+  preflight: () => void = assertManualRuntime,
 ): Promise<boolean> {
   if (args.length || execArgs.length) {
-    io.write('Inicio rechazado: no se admiten argumentos ni opciones de Node.');
+    io.write(
+      JSON.stringify({ status: 'stopped', category: 'runtime_rejected' }),
+    );
     return false;
   }
   const controller = new AbortController();
@@ -42,7 +47,9 @@ export async function runManualVerification(
   stopSignal.addEventListener('abort', stop, { once: true });
   if (stopSignal.aborted) stop();
   const timer = setTimeout(stop, MANUAL_SESSION_MS);
+  let authAttempted = false;
   try {
+    preflight();
     io.write(
       'Verificación REAL read-only. Requiere revisión independiente y aprobación previa de Bruno. No usar desde un agente, terminal grabada o depurador.',
     );
@@ -58,25 +65,28 @@ export async function runManualVerification(
     credentials = new PasswordGrantCredentials(username, password);
     username = undefined;
     password = undefined;
+    preflight();
+    authAttempted = true;
     session = await credentials.authenticate(fetcher, controller.signal);
     credentials = undefined;
     session.signal.addEventListener('abort', stop, { once: true });
     if (session.signal.aborted) stop();
     const adapter = createAdapter(session);
-    const performed = new Set<string>();
+    let nextAction = 1;
     io.write(
       'Autenticación validada. Sesión breve en memoria, sin refresh ni re-login.',
     );
     while (!controller.signal.aborted) {
       io.write(
-        'Orden recomendado: 1 instrumento (bCBA/AL30), 2 cotización detalle (bCBA/AL30), 3 estado de cuenta, 4 portfolio (argentina). Una lectura por acción. salir termina. No repetir acciones.',
+        `Orden obligatorio: 1 instrumento, 2 cotización detalle, 3 estado de cuenta, 4 portfolio. Próxima acción: ${nextAction}. Escribí su número para confirmar o salir para terminar.`,
       );
       const choice = await io.readHidden('action', controller.signal);
       if (choice === 'salir') return true;
       if (controller.signal.aborted)
         throw new IolError('authentication_failure');
-      if (performed.has(choice)) throw new IolError('allowlist_rejection');
-      performed.add(choice);
+      if (choice !== String(nextAction))
+        throw new IolError('allowlist_rejection');
+      preflight();
       switch (choice) {
         case '1':
           io.write(
@@ -95,7 +105,8 @@ export async function runManualVerification(
         default:
           throw new IolError('allowlist_rejection');
       }
-      if (performed.size === 4) return true;
+      if (nextAction === 4) return true;
+      nextAction++;
     }
     throw new IolError('authentication_failure');
   } catch (error: unknown) {
@@ -108,8 +119,15 @@ export async function runManualVerification(
         operation: 'session',
         status: 'stopped',
         category: code,
+        ...(schemaDiagnostic(error)
+          ? { diagnostic: schemaDiagnostic(error) }
+          : {}),
       }),
     );
+    if (authAttempted && !session)
+      io.write(
+        'La autenticación pudo emitir un token remoto. No reintentar: terminar y seguir el procedimiento de incidente y espera/revocación oficial del runbook. dispose() no revoca tokens.',
+      );
     return false;
   } finally {
     clearTimeout(timer);

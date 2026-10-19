@@ -53,10 +53,41 @@ void test('other production packages and API cannot import IOL credential/transp
     visit(tree);
   }
 });
-void test('manual modules never load environment/files or export credential internals at package root', () => {
+void test('only defensive preflight can inspect environment names; no credential environment/file loading', () => {
   const files = sourceFiles(resolve(root, 'packages/iol/src'));
   for (const file of files) {
     const source = readFileSync(file, 'utf8');
+    if (
+      file === resolve(root, 'packages/iol/src/internal/manual-preflight.ts')
+    ) {
+      const tree = ts.createSourceFile(
+        file,
+        source,
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      let environmentReads = 0;
+      function visit(node: ts.Node): void {
+        if (
+          ts.isPropertyAccessExpression(node) &&
+          node.expression.getText(tree) === 'process' &&
+          node.name.text === 'env'
+        ) {
+          environmentReads++;
+          assert.ok(ts.isCallExpression(node.parent));
+          assert.equal(node.parent.expression.getText(tree), 'Object.keys');
+          assert.equal(node.parent.arguments.length, 1);
+        }
+        ts.forEachChild(node, visit);
+      }
+      visit(tree);
+      assert.equal(environmentReads, 1);
+      assert.doesNotMatch(
+        source,
+        /process\s*\[|dotenv|node:fs|node:child_process/,
+      );
+      continue;
+    }
     assert.doesNotMatch(
       source,
       /process\s*(?:\.env|\[\s*['"]env['"]\s*\])|dotenv|node:fs|node:child_process/,

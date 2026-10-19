@@ -65,10 +65,15 @@ npm start
 password, access/refresh tokens or configurable broker URLs there or in environment
 variables. The API rejects IOL keys except `IOL_READ_ONLY`. It does not import the
 manual runner. After review and explicit real-session approval only,
-`npm run iol:verify:manual` starts the separate package-local terminal runner.
+`npm run iol:verify:manual` rebuilds packages/iol and, only on successful compile,
+starts the separate package-local terminal runner.
 It makes no startup request, takes no CLI credentials/options and requires hidden
 interactive input plus one explicit action per request. See the runbook before
-using it; do not run an authenticated session through an agent.
+using it; do not run an authenticated session through an agent. ADR-022 adds
+runtime inspector/proxy/TLS/preload checks, known-path schema diagnostics without
+sensitive values/counts and mandatory read order. Use normal PowerShell/Windows
+Terminal, not JavaScript Debug Terminal or VS Code Auto Attach. For legacy .env
+files, remove every IOL\_\* credential/client/origin entry; only IOL_READ_ONLY remains.
 
 ## Development checks
 

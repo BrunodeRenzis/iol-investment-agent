@@ -22,6 +22,13 @@ summaries reduce the first session's scope without resolving provider unknowns.
 Review, explicit real-session approval, entitlement/limits/incident checks and
 sanitized user-run acceptance remain required. Step 4 is still open.
 
+ADR-022 adds offline final preflight and privacy controls without new provider
+evidence: runtime restrictions, ordered reads, safe schema diagnostics, no exact
+portfolio counts and a shared 16,384-character access-token bound. Failure after
+possible issuance does not prove revocation or expiry; follow the manual runbook's
+incident/waiting policy using the access lifetime already documented by source A.
+**REAL CALL NOT YET EXECUTED.** All provider unknowns below remain unresolved.
+
 ## Evidence labels and correction
 
 - **VERIFIED** means supported by the cited official contract, not live-tested.

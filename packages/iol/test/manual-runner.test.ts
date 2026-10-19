@@ -5,6 +5,7 @@ import {
   type InputField,
   type ManualIO,
 } from '../src/internal/manual-runner';
+import { validateManualRuntime } from '../src/internal/manual-preflight';
 import {
   accountFixture,
   instrumentFixture,
@@ -47,7 +48,14 @@ function harness(
   return { io, fetcher, output, prompts, calls };
 }
 const run = (h: ReturnType<typeof harness>): Promise<boolean> =>
-  runManualVerification(h.io, h.fetcher, [], [], new AbortController().signal);
+  runManualVerification(
+    h.io,
+    h.fetcher,
+    [],
+    [],
+    new AbortController().signal,
+    () => validateManualRuntime([], [], false),
+  );
 
 void test('startup and exit perform no network request or credential prompt', async () => {
   const h = harness(['salir']);
@@ -256,10 +264,91 @@ void test('token expiry interrupts the authenticated idle session without refres
     [],
     [],
     new AbortController().signal,
+    () => validateManualRuntime([], [], false),
   );
   await idle;
   context.mock.timers.tick(1000);
   assert.equal(await result, false);
   assert.equal(calls, 1);
   assert.ok(!h.output.join('\n').includes(password));
+});
+
+void test('unsafe runtime fails before any prompt or request, with only a fixed category', async () => {
+  const h = harness([]);
+  assert.equal(
+    await runManualVerification(
+      h.io,
+      h.fetcher,
+      [],
+      [],
+      new AbortController().signal,
+      () => validateManualRuntime(['NODE_OPTIONS'], [], false),
+    ),
+    false,
+  );
+  assert.equal(h.prompts.length, 0);
+  assert.equal(h.calls.length, 0);
+  assert.ok(h.output.join('\n').includes('runtime_rejected'));
+  assert.ok(!h.output.join('\n').includes('NODE_OPTIONS'));
+});
+
+void test('reads enforce 1 -> 2 -> 3 -> 4, with cancellation and no automatic next action', async () => {
+  for (const choices of [
+    ['2'],
+    ['3'],
+    ['4'],
+    ['1', '3'],
+    ['1', '4'],
+    ['1', '1'],
+  ]) {
+    const h = harness([...login, ...choices]);
+    assert.equal(await run(h), false);
+    assert.equal(h.calls.length, choices.length === 1 ? 1 : 2);
+  }
+  const bodies = [instrumentFixture, quoteFixture, accountFixture];
+  const h = harness([...login, '1', '2', '3', 'salir'], () =>
+    Promise.resolve(response(bodies.shift()!)),
+  );
+  assert.equal(await run(h), true);
+  assert.equal(h.calls.length, 4);
+});
+
+void test('failure after possible issuance warns without retrying or exposing the token body', async () => {
+  const h = harness([...login, 'AUTENTICAR SESION APROBADA']);
+  let calls = 0;
+  const ok = await runManualVerification(
+    h.io,
+    () => {
+      calls++;
+      return Promise.resolve(response(auth.replace('900', '0')));
+    },
+    [],
+    [],
+    new AbortController().signal,
+    () => validateManualRuntime([], [], false),
+  );
+  assert.equal(ok, false);
+  assert.equal(calls, 1);
+  assert.ok(h.output.join('\n').includes('token remoto'));
+  assert.ok(!h.output.join('\n').includes(auth));
+  assert.ok(!h.output.join('\n').includes('synthetic-runner-access'));
+});
+
+void test('runner prints only the trusted schema diagnostic and stops before subsequent reads', async () => {
+  const h = harness([...login, '1', '2'], () =>
+    Promise.resolve(
+      response(instrumentFixture.replace('bCBA', 'PRIVATE_REJECTED_VALUE')),
+    ),
+  );
+  assert.equal(await run(h), false);
+  assert.equal(h.calls.length, 2);
+  const line = h.output.find((value) => value.startsWith('{'));
+  assert.ok(line);
+  assert.deepEqual(JSON.parse(line) as unknown, {
+    operation: 'session',
+    status: 'stopped',
+    category: 'invalid_payload',
+    diagnostic: { path: 'instrument.mercado', kind: 'enum' },
+  });
+  assert.ok(!h.output.join('\n').includes('PRIVATE_REJECTED_VALUE'));
 });

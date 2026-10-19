@@ -8,6 +8,8 @@ const ERROR_CODES = [
   'unexpected_status',
   'redirect_rejected',
   'offline_fixture_missing',
+  'runtime_rejected',
+  'terminal_unavailable',
 ] as const;
 export type IolErrorCode = (typeof ERROR_CODES)[number];
 

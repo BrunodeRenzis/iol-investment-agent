@@ -18,6 +18,7 @@ import {
   type IolQuoteDetail,
 } from './models';
 import type { IolTransport } from './transport';
+import { payloadFailure, schemaFailure } from './schema-diagnostic';
 
 export interface IolReadOnlyAdapter {
   getAccountState(): Promise<IolAccountState>;
@@ -33,7 +34,7 @@ export function createAdapter(transport: IolTransport): IolReadOnlyAdapter {
     decode: Decoder<T>,
     matchesRequest: (value: T) => boolean = () => true,
   ): Promise<T> {
-    validateRequest(request);
+    const operation = validateRequest(request);
     let body: string;
     try {
       body = await transport.read(request);
@@ -43,11 +44,11 @@ export function createAdapter(transport: IolTransport): IolReadOnlyAdapter {
       );
     }
     try {
-      const value = decode(parseWireJson(body));
-      if (!matchesRequest(value)) throw new IolError('invalid_payload');
+      const value = decode(parseWireJson(body, operation), operation);
+      if (!matchesRequest(value)) throw schemaFailure('malformed', operation);
       return value;
-    } catch {
-      throw new IolError('invalid_payload');
+    } catch (error: unknown) {
+      throw payloadFailure(error, operation);
     }
   }
   return Object.freeze({

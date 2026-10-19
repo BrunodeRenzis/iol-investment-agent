@@ -2,6 +2,7 @@ import { inspect } from 'node:util';
 import { IolError } from '../error';
 import { validateRequest, type ReadRequest } from './allowlist';
 import { MAX_RESPONSE_BYTES } from './json';
+import { accessTokenValue } from './token-policy';
 
 /** Internal and mockable. Package root exports neither this nor a live factory. */
 export interface IolTransport {
@@ -15,16 +16,9 @@ export class AuthenticatedReadTransport implements IolTransport {
   readonly #timeoutMs: number;
   readonly #controllers = new Set<AbortController>();
   constructor(token: string, fetcher: typeof fetch, timeoutMs = 10_000) {
-    if (
-      typeof token !== 'string' ||
-      /[^A-Za-z0-9._~+/=-]/.test(token) ||
-      !/^[A-Za-z0-9._~+/-]+={0,2}$/.test(token) ||
-      token.length > 16384
-    )
-      throw new IolError('authentication_failure');
     if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000)
       throw new IolError('timeout');
-    this.#token = token;
+    this.#token = accessTokenValue(token);
     this.#fetch = fetcher;
     this.#timeoutMs = timeoutMs;
     Object.freeze(this);

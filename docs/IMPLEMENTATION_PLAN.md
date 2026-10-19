@@ -87,6 +87,14 @@ IOL_READ_ONLY; general API .env loading remains. Runtime unknowns remain in the
 runbook/evidence register. This prepares review; it does not close Step 4 or approve
 a real session, normalization or later capabilities.
 
+Final preflight hardening (ADR-022) further requires runtime-name/inspector checks
+before credentials and requests, ordered 1 -> 2 -> 3 -> 4 actions, no exact account/
+holding/per-field counts, allowlisted schema paths with closed failure kinds,
+consistent 16,384-character access-token limits and compile-before-run behavior.
+Failure after possible issuance triggers the documented lifetime/incident policy,
+never an automatic authentication retry. Offline tests cover these controls;
+real execution and Step 5 remain pending.
+
 ## Step 5 — Phase 1 authentication and portfolio normalization
 
 Step 5 must resolve broker dollar contexts before aggregation. `Currency = ARS | USD`

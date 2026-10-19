@@ -7,26 +7,30 @@ import type {
 
 type RecordView = Readonly<Record<string, unknown>>;
 
-/** Only constant field names, counts and type labels leave this module. */
+/** Only constant field names, boolean presence and type labels leave this module. */
 function fields(
   records: readonly RecordView[],
   names: readonly string[],
 ): RecordView {
   return Object.fromEntries(
     names.map((name) => {
-      let absent = 0;
-      let nulls = 0;
+      let absent = false;
+      let nulls = false;
+      let present = false;
       const types = new Set<string>();
       for (const record of records) {
         const value = record[name];
-        if (value === undefined) absent++;
-        else if (value === null) nulls++;
-        else types.add(Array.isArray(value) ? 'array' : typeof value);
+        if (value === undefined) absent = true;
+        else {
+          present = true;
+          if (value === null) nulls = true;
+          else types.add(Array.isArray(value) ? 'array' : typeof value);
+        }
       }
       return [
         name,
         {
-          present: records.length - absent,
+          present,
           absent,
           null: nulls,
           types: [...types].sort(),
@@ -65,7 +69,7 @@ export function quoteSummary(value: IolQuoteDetail): string {
       [value],
       [...identity, 'ultimoPrecio', 'fechaHora', 'volumenNominal', 'puntas'],
     ),
-    depthCount: value.puntas?.length ?? null,
+    depth: value.puntas?.length ? 'present' : 'none',
     depthFields: fields(value.puntas ?? [], [
       'precioCompra',
       'cantidadCompra',
@@ -80,7 +84,7 @@ export function accountSummary(value: IolAccountState): string {
     operation: 'accountState',
     ...passed,
     fields: fields([value], ['cuentas', 'totalEnPesos', 'estadisticas']),
-    accountCount: value.cuentas.length,
+    accounts: value.cuentas.length ? 'present' : 'none',
     accountFields: fields(value.cuentas, [
       'tipo',
       'moneda',
@@ -109,7 +113,7 @@ export function portfolioSummary(value: IolPortfolio): string {
     operation: 'portfolio',
     ...passed,
     fields: fields([value], ['pais', 'activos']),
-    holdingCount: value.activos.length,
+    holdings: value.activos.length ? 'present' : 'none',
     holdingFields: fields(value.activos, [
       'titulo',
       'cantidad',
