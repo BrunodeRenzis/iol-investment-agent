@@ -33,10 +33,11 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 - [ ] Step 3 explicitly verifies whether IOL offers true read-only credentials/scopes; separate read/write permissions whenever supported
 - [x] treat unknown REST scopes as write-capable; no real credentials loaded
 - [x] isolate mock-tested token handling inside `packages/iol`; enforce four verified read paths with automated denial-before-network and redirect tests (ADR-020)
-- [x] no credential-bearing public API or credentials in another package; no live runtime wiring introduced
+- [x] no credential-bearing public API or credentials in another package; Step 4B private manual wiring stays inside packages/iol
 - [ ] check current IOL data terms for storage, historical retention, and redistribution before persistence/redistribution
 - [x] offline typed read-only adapter for account state, portfolio, instrument and quote detail; exact V2 enums and lossless JSON numeric strings (ADR-020)
-- [ ] reviewed auth/runtime policy and package-local manual live wiring, explicit user approval and sanitized USER-RUN verification; Step 4 acceptance remains open
+- [x] Step 4B auth/runtime policy and manual runner prepared with offline tests (ADR-021); no real session executed
+- [ ] independent review, explicit real-session approval and sanitized USER-RUN acceptance; Step 4 remains open
 - [ ] authentication/authorization before ANY financial/account endpoint, including loopback
 - [ ] normalized models, sensitive-schema field rejection, OAuth state/PKCE and CSRF where applicable
 - [x] bounded local timeout/no-retry policy, safe errors and synthetic offline adapter fixtures/tests
@@ -44,9 +45,12 @@ AI has NO authority over account/execution permissions, hard portfolio/risk limi
 
 Step 4: **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING**. Lossless
 parsing, explicit enum casing, allowlist and transport are tested offline only.
-Real broker calls require resolution of runtime/auth policy, independent review,
-explicit approval and the [USER-RUN procedure](IOL_MANUAL_VERIFICATION.md).
-Password persistence, refresh/re-login and a live factory remain unimplemented.
+Step 4B: **REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED** (ADR-021).
+Real calls require independent review, explicit session approval and the
+[USER-RUN procedure](IOL_MANUAL_VERIFICATION.md), including entitlement, manual
+limits and incident checks. Credentials use hidden terminal input, never env/CLI;
+private password grant and short in-memory token use are prepared. Refresh token
+is discarded. No persistence, automatic refresh/re-login, retries or public live factory.
 Future write credentials must remain separate from read credentials whenever possible.
 Personal REST scopes remain UNKNOWN — must be verified; MCP permissions cannot
 substitute. Bind exact origin/host + method + path template + allowed path values/

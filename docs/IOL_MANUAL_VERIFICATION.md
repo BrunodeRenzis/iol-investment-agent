@@ -1,78 +1,130 @@
-# Step 4 — future user-run verification
+# Step 4B — prepared user-run verification
 
-**NOT AUTHORIZED OR EXECUTED BY THIS IMPLEMENTATION.** The adapter is complete
-offline; Step 4 remains open until the real-call acceptance gate is satisfied.
-This runbook is subordinate to AGENTS.md, ADR-017/ADR-020 and IOL_CONTRACT.md.
-No credentials should be generated, requested, pasted or shared now.
+**OFFLINE ADAPTER COMPLETE — REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED.**
 
-## Prerequisites before any authenticated request
+Preparation and offline tests are authorized; real execution is NOT authorized by
+this change. Step 4 remains open. This runbook follows AGENTS.md, ADR-017,
+ADR-020/ADR-021 and IOL_CONTRACT.md. Agents never request, receive or use real
+credentials and never execute an authenticated verification session.
 
-1. Obtain independent review of the offline diff and tests, then Bruno's explicit
-   approval for a local, user-run, four-operation read-only verification session.
-   Confirm the intended personal API account/access entitlement locally. Do not
-   use Swagger's Try it out UI or assume the homo UI points to an isolated sandbox.
-2. Resolve/document the runtime authentication policy using official evidence:
-   credential source, token expiry/revocation, refresh/reuse/concurrency and
-   re-login handling. Password persistence remains undecided and unimplemented.
-   An explicitly approved short-lived in-memory session without persistence or
-   automatic refresh/re-login may be considered; it is not silently selected here.
-   Verify true read-only scope availability; if absent or still unverified,
-   document the write-capable assumption and containment before proceeding.
-3. Review local timeout/no-retry behavior and an approved single-request operating
-   limit against known API terms/runtime limitations. Unknown quotas/error shapes
-   are not invented: unexpected status stops the session; no automated probing,
-   intentional auth failures or retries are allowed. Collection/storage rights
-   remain a separate gate; this verification does not create a dataset.
-4. In a separately approved change, add/review a manual runner **inside
-   `packages/iol`**, with hidden local credential input and package-private live
-   wiring. It must use the existing strict transport with built-in fetch, never
-   expose credentials to another package, and issue exactly one chosen named
-   operation per explicit user action. Add offline tests before enabling it.
-   No such runner/live factory currently exists; `npm start` only starts health.
-   Do not improvise a generic HTTP proxy or use credentials in command arguments,
-   shell history, environment dumps, debug logs or agent prompts.
-5. Run `npm ci`, `npm run check` and `npm run audit:dependencies`. Confirm redirect
-   mode is manual, no retries, only the four allowlisted GET paths, no request or
-   raw-response logging, and no automatic request on startup. Disable shell
-   transcription/debug capture for the approved private session.
+## Prerequisites before a real session
 
-## Exact manual request sequence after those prerequisites
+1. Independently review the adapter, private password-grant boundary, runner,
+   terminal handling, output projections and offline tests. Obtain Bruno's explicit
+   approval for the specific local manual session. The runner's typed acknowledgment
+   does not substitute for that review/approval.
+2. Bruno confirms personal API activation/access entitlement and applicable manual
+   request restrictions through official channels. REST scopes remain UNKNOWN;
+   treat the token as WRITE-CAPABLE. Confirm official revocation/incident options
+   without inventing a revocation endpoint or 2FA flow. Do not use Swagger Try it
+   out; the homo UI does not prove sandbox isolation.
+3. Use a separate private terminal/process without recording, shell transcription,
+   debug/preload hooks, crash/heap dumps or HTTP tracing. Broker secrets NEVER go
+   in .env, environment, CLI arguments, history, files, logs or prompts. Do not run
+   through an agent. The runner does not read env/files and rejects explicit CLI/
+   Node options; process-level instrumentation still requires a trusted runtime.
+4. Run `npm ci`, `npm run check`, `npm run audit:dependencies`. On Windows with
+   PowerShell script restrictions, use `npm.cmd` for the same commands. Check
+   hidden-input behavior locally with synthetic input before real credentials;
+   starting and exiting requires no credentials or authentication request.
+5. Review the local limits: one explicit auth action, then at most four separately
+   chosen reads, each once; no retry/refresh/re-login or polling. The whole session
+   lasts at most five minutes from startup, with an earlier token deadline derived
+   conservatively from positive expires_in. Both boundaries time out at ten
+   seconds. These are local safeguards, not IOL quota/lifetime guarantees.
 
-Bruno runs each action locally and explicitly decides whether to proceed to the
-next. No agent runs authenticated requests. The least sensitive reads come first.
-All requests use exactly `https://api.invertironline.com`; no query string.
+Collection/storage/redistribution rights remain a separate gate. This procedure
+does not create a dataset or permit persistence of financial observations.
 
-| Order | Named action                     | Exact path / checks                                                                                                                                                                                               |
-| ----- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `getInstrument('bCBA', 'AL30')`  | `GET /api/v2/bCBA/Titulos/AL30`; verify returned market/symbol, country, security type, currency and settlement enum shape. AL30 is a routing example, not a recommendation or guaranteed availability.           |
-| 2     | `getQuoteDetail('bCBA', 'AL30')` | `GET /api/v2/bCBA/Titulos/AL30/CotizacionDetalle`; verify the same identity, exact numeric token preservation, optional/null fields and raw timestamp text. Do not infer freshness/timezone or executable prices. |
-| 3     | `getAccountState()`              | `GET /api/v2/estadocuenta`; verify field names/types and distinct tipo/moneda/liquidacion contexts locally. Account numero must be discarded. Do not share balances, totals or a full DTO.                        |
-| 4     | `getPortfolio('argentina')`      | `GET /api/v2/portafolio/argentina`; verify country, empty/nonempty shape, title identity and numeric types locally. Do not share holdings, quantities, costs or valuations.                                       |
+## Launch only after review and explicit real-session approval
 
-If AL30 is unavailable, stop; a different officially confirmed symbol requires a
-new explicit user action after review. Do not enumerate symbols or markets. A US
-portfolio request is optional only under a separate explicit user action and
-verified account entitlement, using canonical `estados_Unidos`; it is not an
-automatic fifth request.
+Build output is produced by `npm run check` / `npm run build`. From the repository:
 
-Stop immediately on any redirect, non-200 response, timeout, invalid payload,
-unexpected casing/shape/nullability, identity mismatch or credential exposure.
-Do not bypass allowlist/schema validation to finish the session. A failed operation
-must not cause the next operation, token refresh or a retry. Dispose of the local
-session/token according to the approved revocation/lifetime policy; on credential
-exposure, stop and rotate/revoke through the official mechanism.
+```text
+npm run iol:verify:manual
+```
 
-## Evidence safe to share
+This launches only `packages/iol/dist/manual.js` in its own local process.
+`npm start` still starts the health-only API using .env for general settings;
+the API never imports the runner and rejects IOL environment keys except
+`IOL_READ_ONLY`. No broker secret belongs in either process's environment.
 
-The future runner must emit only an allowlisted diagnostic summary: operation
-name, fixed result/error category, reviewed HTTP status if available, field-name
-and type/presence findings, and pass/fail for numeric/identity checks. No token,
-Authorization, username/password, cookie, account number, DNI/CUIT, email,
-balances, holdings, quantities or complete raw/decoded response may appear.
+The runner makes NO request at startup. Input/output must be a TTY; pipes and
+redirected output are refused. All input is hidden, including username and actions.
+Type manually; pasted/batched text, control sequences and unsupported terminal
+input stop the session. Backspace is supported. `salir` exits at an action prompt;
+Ctrl+C cancels, including during hidden input. No readline/shell input history.
 
-Inspect the summary locally before sharing. Describe a schema mismatch using field
-names and synthetic replacement values only; keep all account identifiers removed.
-Do not paste a raw payload for troubleshooting. Record the verification date and
-sanitized outcome in IOL_CONTRACT.md after review; unknown semantics remain UNKNOWN.
-Only then decide whether Step 4's acceptance criteria are satisfied. Step 5,
-persistence, scheduling and broker writes remain separately gated.
+An explicit `AUTENTICAR SESION APROBADA` action prompts privately for username and
+password and sends at most one `POST https://api.invertironline.com/token`.
+The form has only username, password and grant_type=password. Auth is separate:
+the four-GET allowlist still rejects /token and POST. No redirects.
+Password references are released immediately after form construction; the form
+is not cached. A strictly validated access token stays private in memory. The
+refresh token is discarded; expiry or any auth error ends the session.
+
+## One explicit action per read
+
+Recommended order (never automatically chained):
+
+| Action | Operation     | Fixed path                                        | Local checks                                                                   |
+| ------ | ------------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `1`    | instrument    | `GET /api/v2/bCBA/Titulos/AL30`                   | Identity matches request; exact V2 enums, currency and settlement present.     |
+| `2`    | quote detail  | `GET /api/v2/bCBA/Titulos/AL30/CotizacionDetalle` | Identity, numeric lexemes, optional/null fields, puntas, int32 volumenNominal. |
+| `3`    | account state | `GET /api/v2/estadocuenta`                        | Structure and separate tipo/moneda/liquidacion contexts; numero discarded.     |
+| `4`    | portfolio     | `GET /api/v2/portafolio/argentina`                | Country, holding/title structure and numeric types.                            |
+
+All use exactly `https://api.invertironline.com`, without queries. AL30 is a fixed
+routing example, not a recommendation or availability guarantee. If unavailable,
+stop; a different symbol or US portfolio requires a separately reviewed change
+and explicit approval. No symbol/market enumeration. Each action can be selected
+once; repeating or entering any other action stops without a read. Completing
+four actions exits; stopping earlier is allowed and leaves acceptance incomplete.
+
+Stop on any redirect, non-200 status (including 401/429), timeout, invalid UTF-8,
+content-type mismatch, oversized payload, unexpected casing/shape/nullability,
+identity mismatch or suspected exposure. No permissive fallback, error-body dump,
+retry, refresh, automatic next action or probe.
+
+## Sanitized evidence only
+
+Each successful operation emits an operation-specific JSON summary with fixed
+operation/status labels, preselected field names, presence/null counts, type labels,
+collection counts and parser/schema/identity validation results. It NEVER prints
+token/Authorization, username/password, cookies, account numbers, DNI/CUIT/email,
+balances, holding identities, quantities, prices, timestamps or complete payloads.
+Failure emits a fixed category only. Unknown field names/casing values are not
+echoed; they may themselves contain sensitive text.
+
+`lossless_validated` means the response passed the lossless parser and strict
+schema; synthetic offline tests establish lexeme preservation. It is not evidence
+of provider economic precision, freshness or executable prices. No actual financial
+lexemes are shown for manual comparison. No schema-failure diagnostic bypass is
+provided; any future diagnostic expansion requires review.
+
+Inspect the summary locally before sharing. Record date, selected operation and
+sanitized outcome in IOL_CONTRACT.md after review. Retain unresolved semantics as
+UNKNOWN. Only then decide whether Step 4 acceptance is satisfied; Step 5 remains
+separately gated.
+
+## Session disposal and incident procedure
+
+Completion, salir, cancellation, expiry or error clears reachable credential/token
+references and aborts outstanding requests. End the process. JavaScript and the
+HTTP stack may retain copies until collection: no cryptographic memory wipe or
+provider-side revocation is claimed. No password/token is persisted.
+
+If exposure is suspected, stop; do not paste logs/payloads or retry. Use verified
+IOL security/support channels to revoke sessions/tokens and rotate affected
+credentials as applicable. No revocation API is assumed or implemented. Document
+only sanitized incident facts and obtain review/new approval before resuming.
+
+## Runtime unknowns still open
+
+Refresh lifetime/rotation/reuse/concurrency, revocation, 2FA behavior, API activation,
+real error bodies, 429/Retry-After behavior, quotas, actual enum casing/nullability,
+scientific notation, volumenNominal representation/range, actual response
+content-type and true read-only REST scopes remain unverified. .refreshexpires
+is validated only as an optional string, never interpreted. No refresh operation
+is present. Data rights, valuation/MEP/CCL and settlement semantics remain separate
+blockers for later phases.

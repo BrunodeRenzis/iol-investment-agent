@@ -235,3 +235,25 @@ void test('public factory stays offline, immutable and exports no credential/tra
     'createOfflineIolAdapter',
   ]);
 });
+
+void test('disposal cancels pending reads immediately and prevents token reuse even when fetch ignores abort', async () => {
+  let calls = 0;
+  let signal: AbortSignal | null | undefined;
+  const transport = new AuthenticatedReadTransport(marker, (_url, init) => {
+    calls++;
+    signal = init?.signal;
+    return new Promise<Response>(() => undefined);
+  });
+  const pending = assert.rejects(
+    transport.read(makeRequest('accountState')),
+    code('timeout'),
+  );
+  transport.dispose();
+  await pending;
+  assert.equal(signal?.aborted, true);
+  await assert.rejects(
+    transport.read(makeRequest('accountState')),
+    code('authentication_failure'),
+  );
+  assert.equal(calls, 1);
+});

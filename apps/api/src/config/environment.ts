@@ -15,6 +15,17 @@ export class ConfigurationError extends Error {
 export function validateEnvironment(
   environment: Readonly<Record<string, string | undefined>>,
 ): Readonly<AppConfig> {
+  if (
+    Object.keys(environment).some(
+      (key) => key.toUpperCase().startsWith('IOL_') && key !== 'IOL_READ_ONLY',
+    )
+  ) {
+    // Reject even empty obsolete placeholders; never echo names or values.
+    throw new ConfigurationError(
+      'broker environment',
+      'is forbidden in the API process',
+    );
+  }
   const nodeEnv = environment.NODE_ENV ?? 'development';
   if (
     nodeEnv !== 'development' &&

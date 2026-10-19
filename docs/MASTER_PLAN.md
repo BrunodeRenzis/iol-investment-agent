@@ -1,6 +1,6 @@
 # IOL Investment Agent — Master Implementation Plan
 
-_Last updated: 2026-10-18_
+_Last updated: 2026-10-19_
 
 ## Authority and current status
 
@@ -12,7 +12,7 @@ This is the high-level operational sequence, subordinate to `AGENTS.md` for poli
 - Phase 1 Step 1: repository hardening implemented. No financial capability, dependencies, packages, hooks or deployment added by Step 1.
 - Phase 1 Step 2: offline financial primitives implemented in `packages/financial` (ADR-019).
 - Phase 1 Step 3: corrected official Swagger evidence recorded in [IOL_CONTRACT.md](IOL_CONTRACT.md), establishing readiness for offline Step 4. Step 3 itself introduced no adapter or financial endpoint; runtime/auth, aggregation and collection gates remain separate.
-- Phase 1 Step 4: **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING** (ADR-020). Four allowlisted GET operations, strict DTOs, lossless numeric strings and mock-only tests are implemented in `packages/iol`. No live wiring, token acquisition or financial endpoint is enabled. Step 4 remains open pending the reviewed [user-run procedure](IOL_MANUAL_VERIFICATION.md).
+- Phase 1 Step 4/4B: **OFFLINE ADAPTER COMPLETE — REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED** (ADR-020/ADR-021). Four allowlisted GETs, strict DTOs and lossless parsing remain unchanged. A private password-grant boundary and separate local manual runner are prepared and tested offline; no real credentials/calls or financial endpoints. Step 4 remains open pending independent review, explicit real-session approval and the [user-run procedure](IOL_MANUAL_VERIFICATION.md).
 
 ## Documentation v2.1 canonical adoption
 
@@ -50,9 +50,12 @@ in [IOL_CONTRACT.md](IOL_CONTRACT.md). Later implementation remains separately g
 The corrected Swagger inventory supports the four initial reads. Step 4 implements
 the offline adapter and deny-before-network allowlist, exact V2 enum casing,
 lossless JSON numeric strings, sanitized errors and redirect rejection (ADR-020).
-Before real broker calls, resolve the remaining auth/runtime policy, review the
-package-local manual wiring and obtain explicit approval for sanitized USER-RUN
-read-only verification. Agents must not use real credentials. Follow
+Step 4B adopts ADR-021's short in-memory session, hidden terminal input, separate
+fixed POST /token boundary, discarded refresh token and one read per explicit
+action. No env/CLI secrets, automatic requests, refresh, re-login or retries.
+Before real calls, independently review the prepared runner, confirm entitlement,
+manual limits and incident options, and obtain explicit real-session approval.
+Agents must not use real credentials. Follow
 [IOL_MANUAL_VERIFICATION.md](IOL_MANUAL_VERIFICATION.md); this gate is not satisfied
 by mock tests. Step 5 remains unimplemented.
 

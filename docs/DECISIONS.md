@@ -532,6 +532,10 @@ remains separately gated. Applies ADR-017 and ADR-019; no historical ADR is rewr
 
 **Date:** 2026-10-18
 
+**Supplemented by:** ADR-021 prepares a private manual password-grant runner in
+Step 4B. Statements below about absent live wiring describe the Step 4 baseline;
+the public factory remains offline-only and real execution remains unapproved.
+
 ### Context and alternatives
 
 The corrected official Swagger evidence in IOL_CONTRACT.md verifies four initial
@@ -630,3 +634,122 @@ package-local manual wiring. Agents never run authenticated calls. Step 4 remain
 **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING** until the reviewed
 user-run acceptance evidence exists. No Step 5+, financial endpoint or broker-write
 capability is authorized by this ADR.
+
+## ADR-021 — Short-lived manual IOL verification in a separate local process
+
+**Status:** Accepted for user-requested Phase 1 Step 4B preparation and offline
+tests only. Independent review and Bruno's explicit approval remain required
+before any authenticated real session. Supplements ADR-017/ADR-020; no Step 5
+or broker-write capability is authorized.
+
+**Date:** 2026-10-19
+
+### Context
+
+The user requested preparation of the first manual verification, without real
+credentials or IOL calls. Obsolete `.env.example` placeholders contradicted the
+credential-isolation policy. Official request/response evidence is already in
+IOL_CONTRACT.md (V1/A); no runtime contract or undocumented OAuth flow is inferred.
+
+### Decision
+
+Broker username/password/access token/refresh token NEVER belong in `.env`,
+environment variables, CLI arguments, shell history, files, logs or model prompts.
+Remove broker credential/client/origin placeholders. `npm start` keeps its env-file
+loader for general API configuration; the API rejects any case-insensitive `IOL_*`
+key except exact `IOL_READ_ONLY`, including empty obsolete keys, without echoing
+names/values. This detects misconfiguration; it cannot undo OS-level inheritance of
+a secret already placed in an environment. No broker credentials may be configured
+there in the first place. No new dependency or broker-secret API configuration.
+
+The separately launched package-local runner has no environment/file loader, API
+dependency, public low-level export, generic URL menu or configurable origin.
+It uses native fetch only in its private entry point. Reject CLI arguments and
+explicit Node options; use a trusted, private, unrecorded terminal without debug,
+preload, diagnostic capture or environment-based Node instrumentation. TTY input
+and output are mandatory. Username, password and actions use hidden raw input;
+there is no echo or readline history. Batched/pasted input and control sequences
+fail closed; type locally. This defensive terminal policy may reject some terminal
+or input-method behavior and must be checked locally with synthetic input first.
+
+Startup makes no request. An explicit `AUTENTICAR SESION APROBADA` action authorizes
+at most one password-grant request after hidden credential entry. This is a local
+acknowledgment of a separately reviewed/approved session, not automated proof of
+that approval. Auth is a separate private boundary fixed to
+`POST https://api.invertironline.com/token`, form-urlencoded body containing only
+`username`, `password`, `grant_type=password`. No client credentials, refresh grant,
+redirect following, endpoint override or generic authenticated request is exposed.
+The data allowlist still rejects `/token` and every POST.
+
+Credentials are single-use private fields without getters. Clear their references
+as soon as the form is constructed and release local form/response references
+after the request. Access tokens live only in a private disposable transport;
+refresh tokens are validated as optional strings then discarded, never retained
+in the session. Private inspection/JSON representations contain fixed labels only.
+Dispose and abort on completion, cancellation, expiration or failure. JavaScript,
+the runtime and HTTP stack may retain copies until garbage collection; this is
+best-effort reference release, NOT cryptographic memory erasure or guaranteed
+provider-side revocation.
+
+Only documented APIToken fields are accepted: `access_token`, `token_type`,
+`expires_in`, `refresh_token`, `.issued`, `.expires`, `.refreshexpires`. The first
+three are local required fields; access token must satisfy the transport's bearer
+grammar, token_type is exactly `bearer` or `Bearer`, expires_in is a positive int32.
+Other fields are optional bounded strings; no null coercion or unknown fields.
+Date strings, especially `.refreshexpires`, are not interpreted. These local
+compatibility requirements are not provider presence/casing guarantees.
+
+Total runner lifetime is at most five minutes from startup. Token use also ends
+at the earlier of five minutes and the positive expires_in duration, measured
+conservatively from the start of the token request with a monotonic clock.
+This is a defensive local deadline, not proof of server validity. Earlier
+revocation/expiration may cause 401, which ends the session. No refresh, automatic
+re-login, password persistence/cache, retries, polling or background requests.
+
+Each explicit numbered action issues at most one of the four GETs. This first
+runner pins bCBA/AL30 and argentina; no arbitrary symbol/market/path inputs.
+Recommend instrument, detail quote, account state, portfolio, with an independent
+action for each. Each action can run once per session; at most four reads plus
+one authentication. Repeated/invalid actions or any unexpected result stop the
+session. This request budget is local policy, never an invented provider quota.
+
+Retain ten-second timeouts and manual redirect rejection for both boundaries.
+Auth payload is limited to 64 KiB; read payloads to 1 MiB. Both require valid UTF-8
+and exactly application/json or text/json media types (parameters allowed).
+Token strings retain the 4,096-character decoder bound. Non-200 statuses, invalid
+payloads, redirects and timeouts stop without parsing/logging error bodies or
+interpreting Retry-After. Financial parsing and exact V2 casing remain unchanged.
+
+Output is an operation-specific projection of fixed field names, presence/null
+counts, fixed type labels, collection counts and validation results. No account,
+holding identity, financial amount, price, quantity, timestamp value or raw token
+lexeme is printed. Precision is tested offline with synthetic lexemes; the runner
+reports parser/schema pass/fail only, not provider economic precision. A schema
+failure emits only a fixed category; it does not list untrusted keys/values. No
+raw-body diagnostic escape hatch. Review a summary locally before sharing it.
+
+### Unknowns, incident response and acceptance
+
+REST scopes remain UNKNOWN: treat every token as WRITE-CAPABLE. Refresh lifetime,
+rotation/concurrency, revocation, 2FA, API activation, real error bodies, 429
+behavior/quotas, actual casing/nullability, exponent notation, volumenNominal range
+and response content-type remain unverified. The absence of refresh functionality
+reduces the first session's scope; it does not resolve these provider questions.
+Before real execution confirm local account entitlement, acceptable manual-request
+limits and official revocation/incident options. No guessed 2FA or revocation flow.
+
+On suspected exposure: stop the session, do not share diagnostics or resume;
+use IOL's verified official security/support mechanism to revoke sessions/tokens
+and rotate affected credentials as applicable. Record only a sanitized incident
+and re-review before another explicit approval. Exiting cannot guarantee token
+revocation. Disable terminal recording/debug capture before an approved session.
+
+All implementation tests use synthetic mocks or two temporary loopback HTTP
+servers. Native-fetch tests redirect from one loopback origin to another and prove
+no second request and no credential forwarding for 301/302/303/307/308; test-only
+URL mapping never changes production allowlists. No live invocation by an agent.
+
+**OFFLINE ADAPTER COMPLETE — REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED.**
+Step 4 stays open until reviewed, sanitized user-run acceptance evidence exists.
+No normalization, portfolio domain, collector, scheduler, trading, MCP/AI runtime,
+broker writes or execution package is introduced.

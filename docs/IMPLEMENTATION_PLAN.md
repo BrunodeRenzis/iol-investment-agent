@@ -40,10 +40,10 @@ Step 3's corrected official Swagger evidence is recorded in
 VERIFICATION PENDING** (ADR-020). The four verified reads are implemented with
 strict allowlist enforcement, exact V2 enum casing, lossless numeric-string DTOs,
 private mock-tested transport, bounded timeouts and sanitized errors. The public
-factory accepts offline fixtures only. No live factory, token acquisition,
-password persistence/re-login decision or financial endpoint is introduced.
-Real broker calls remain gated by auth/runtime policy, independently reviewed
-package-local manual wiring and sanitized USER-RUN read-only verification under
+factory accepts offline fixtures only. Step 4B now prepares private manual token
+acquisition and wiring under ADR-021; no public live factory or financial endpoint.
+Real broker calls remain gated by independent review, explicit session approval,
+account entitlement/operating-limit/incident checks and sanitized USER-RUN verification under
 [IOL_MANUAL_VERIFICATION.md](IOL_MANUAL_VERIFICATION.md). Step 4 remains open until
 that acceptance gate is satisfied; mock success is not connectivity evidence.
 Agents must not use real credentials. MCP read-only consent does not prove REST
@@ -70,6 +70,22 @@ and excessive precision instead of rounding. Provider DTOs preserve context and
 discard account numbers; no portfolio normalization or Money conversion is added.
 See `packages/iol/README.md` for local bounds and nullability policy. Step 3 itself
 remains evidence-only; ADR-019's financial domain API is unchanged.
+
+### Step 4B — real-call preparation, offline only
+
+**OFFLINE ADAPTER COMPLETE — REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED.**
+ADR-021 defines hidden local username/password input, never env/CLI/files/history/
+logs; single-use fixed-origin password grant; strict documented token fields;
+access token only in memory; refresh token discarded; no refresh, automatic re-login
+or retries. Session duration is bounded to five minutes, shorter if expires_in
+requires. The separate package-local runner makes no startup request, authenticates
+only after explicit acknowledgment, and executes each of four reads at most once
+per explicit action. Output contains only operation-specific structural summaries.
+Offline tests include containment, sanitization, cancellation/timeouts and native
+fetch redirects between loopback servers. API rejects broker env keys except
+IOL_READ_ONLY; general API .env loading remains. Runtime unknowns remain in the
+runbook/evidence register. This prepares review; it does not close Step 4 or approve
+a real session, normalization or later capabilities.
 
 ## Step 5 — Phase 1 authentication and portfolio normalization
 

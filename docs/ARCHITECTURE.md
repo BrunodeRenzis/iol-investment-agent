@@ -86,8 +86,12 @@ Separate broker read/write permissions/scopes whenever supported; Step 3 verifie
 Step 4 implements this boundary offline (ADR-020): four named read operations,
 exact origin/method/path/enum validation before network, manual redirect rejection,
 private mock-tested authenticated transport and fixed safe error categories.
-The public factory accepts synthetic fixtures only; no live wiring or token
-acquisition is enabled. Pinned lossless-json 4.3.2 preserves numeric lexemes into
+The public factory accepts synthetic fixtures only. Step 4B (ADR-021) prepares a
+separate local manual process and private fixed POST /token boundary; neither is
+exported to callers or integrated with the API. Hidden credentials and short-lived
+access token remain in memory, with no env/CLI secrets, refresh, automatic re-login
+or retries. Each explicit action permits one request. Real execution still requires
+review and explicit approval. Pinned lossless-json 4.3.2 preserves numeric lexemes into
 string-backed IOL DTOs without Number intermediates. DTOs preserve broker context
 and discard account numbers, without domain normalization or aggregation. API
 composition remains health-only. See `packages/iol/README.md` and the gated

@@ -32,11 +32,40 @@ requirements implemented offline in Step 4 under ADR-020. The four-operation
 facade has no credential parameters; its public factory accepts synthetic fixtures
 only. Authenticated transport is internal, explicitly injected and mock-tested,
 with a private non-serialized token, manual redirects, no retries, strict bounded
-payload parsing and errors containing only fixed categories. No real token loader
-or live factory exists. Account numbers are discarded from returned DTOs.
+payload parsing and errors containing only fixed categories. Step 4B (ADR-021)
+adds private package-local manual wiring and a separate fixed-origin POST /token
+password grant. No public live factory exists. Account numbers are discarded.
+
+Broker username/password/access/refresh tokens NEVER go in .env, environment,
+CLI arguments, shell history, files, logs or prompts. The API keeps .env for general
+settings but rejects any IOL_* key except exact IOL_READ_ONLY (case-insensitive
+prefix check, no key/value echo). This catches misconfiguration, not OS inheritance;
+never put broker secrets in the environment in the first place. Origins are fixed;
+unsupported client-id/client-secret and origin placeholders have been removed.
+
+The manual runner is a separate local process, never imported by the API. Both
+username and password use hidden TTY input; no pipes, echo, history or pasted/batched
+input. Explicit CLI/Node options are rejected; trusted execution must also exclude
+debug/preload/recording/diagnostic instrumentation. Startup performs no request.
+An explicit auth action can make one POST with only username/password/grant_type;
+each later action can make one of four fixed GETs, once each. No generic URL input.
+REST tokens remain write-capable by assumption. Access token only in memory,
+refresh token discarded; no refresh, automatic re-login, retries, polling or cache.
+Five-minute maximum session and conservative expires_in deadline; 10-second
+requests, 64 KiB token body, 1 MiB read body, strict UTF-8/JSON media types.
+Every error, redirect, non-200 status or expiry stops. Unknown error bodies and
+Retry-After are not interpreted. Output projects fixed structural fields/counts
+and validation categories only, never raw bodies, identifiers or financial values.
+
+Dispose/abort on exit, cancellation, expiry or failure; release reachable secret
+references without claiming cryptographic JavaScript memory erasure or provider
+revocation. On suspected exposure, stop and use verified official IOL channels
+for revocation/credential rotation; do not share payloads or resume without review.
+The runner and local native-fetch redirect tests were prepared offline only:
+**REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED**.
 
 Official routes/schemas support the offline implementation, not unrestricted real
-calls. Resolve runtime/auth questions and follow the reviewed, explicitly approved
+calls. Resolve remaining runtime/entitlement/incident questions and follow the reviewed, explicitly approved
 [USER-RUN verification procedure](IOL_MANUAL_VERIFICATION.md);
 agents must not use real credentials. Exclude `datos-perfil` from the initial
 allowlist because it exposes personal identifiers. Minimize account numbers in

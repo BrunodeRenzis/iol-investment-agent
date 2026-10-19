@@ -13,6 +13,15 @@ The public factory is offline-only; real verification follows
 unrestricted broker calls, Step 5 aggregation, persistent collection or broker
 writes. Runtime verification gates remain below.
 
+Step 4B (ADR-021) adds **REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED**.
+Private password grant and a separate local runner are prepared with offline
+tests only; public factory remains offline. No new provider evidence or real
+response has been obtained. Five-minute in-memory policy, hidden input, discarded
+refresh token, no automatic refresh/re-login/retry and operation-specific safe
+summaries reduce the first session's scope without resolving provider unknowns.
+Review, explicit real-session approval, entitlement/limits/incident checks and
+sanitized user-run acceptance remain required. Step 4 is still open.
+
 ## Evidence labels and correction
 
 - **VERIFIED** means supported by the cited official contract, not live-tested.
@@ -351,6 +360,12 @@ runtime guarantees. Offline success does not authorize real-account access.
 
 ### Resolve during Step 4 before real broker calls
 
+Step 4B selects a conservative local policy (ADR-021), not verified provider
+behavior: one password grant and a short in-memory session, no refresh/re-login,
+stop on any unexpected status/shape. API activation, 2FA behavior and real response
+content-type also remain UNKNOWN. The runner's JSON media-type and token-shape
+requirements can reject live responses; do not weaken them to finish a session.
+
 - Refresh lifetime, rotation/reuse/concurrency, `.refreshexpires` semantics,
   revocation, password re-login requirements and whether password storage is needed.
 - Actual 400/401/404/429 and other error bodies, invalid-instrument/parameter behavior,
@@ -406,4 +421,6 @@ Step 3 required no new ADR. Step 4 adds ADR-020 for the offline adapter boundary
 lossless parser dependency and local validation policies, applying ADR-017,
 ADR-019 and ADR-013. Historical accepted text is unchanged. Step 4 adds package
 source/tests and the pinned parser/lockfile, but no financial HTTP endpoint,
-collector, trading, scheduler, MCP, AI, token acquisition or broker writes.
+collector, trading, scheduler, MCP, AI or broker writes. Token acquisition was
+absent in the Step 4 baseline; Step 4B adds only the private manual password-grant
+preparation under ADR-021, without executing it against IOL.

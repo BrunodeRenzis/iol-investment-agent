@@ -1,6 +1,6 @@
 # IOL read-only adapter
 
-**OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING.** Phase 1 Step 4
+**OFFLINE ADAPTER COMPLETE — REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED.** Phase 1 Step 4
 implements the four verified read contracts under ADR-020. It does not complete
 Step 4's real-call acceptance gate. See [contract evidence](../../docs/IOL_CONTRACT.md)
 and the [future manual verification procedure](../../docs/IOL_MANUAL_VERIFICATION.md).
@@ -27,10 +27,10 @@ The public factory cannot perform network access. The API application does not
 import this package or expose financial endpoints.
 
 The internal authenticated transport requires an explicitly injected `fetch`;
-tests supply mocks only. It has no global/default fetch, live factory, credential
-loader, `/token` acquisition, refresh, password persistence or re-login logic.
-Future live wiring and credential acquisition must stay inside this package and
-pass the documented review/user-run gate. Other packages may obtain only the
+tests supply mocks or a loopback-only test seam. It has no global/default fetch or
+public live factory. Step 4B adds a private password-grant boundary and manual
+entry point with native fetch, subject to the documented review/user-run gate.
+There is no refresh, password persistence or automatic re-login. Other packages may obtain only the
 four-operation facade, never a credential-bearing transport or generic request.
 Package exports deny internal subpaths; this is an application boundary, not an
 OS sandbox against malicious code with filesystem/process access.
@@ -122,9 +122,9 @@ introduced until units, currency and account/settlement context are verified.
 ## Credentials, errors and limits
 
 Unknown REST scopes mean every token is treated as write-capable. Internally,
-the transport holds only a private in-memory `#token`, with no getter and safe
+the transport holds only a disposable private in-memory `#token`, with no getter and safe
 JSON/inspection representations. It constructs Authorization only for validated
-requests. No real token is loaded by this implementation or its tests.
+requests. No real token has been loaded during implementation or offline tests.
 
 There are no payload logs. Errors expose only fixed codes: `allowlist_rejection`,
 `invalid_payload`, `network_failure`, `timeout`, `authentication_failure`,
@@ -136,8 +136,51 @@ timeout aborts the request. This is not an IOL SLA or a quota/retry contract.
 
 Private fields and narrow exports prevent accidental credential exposure through
 the supported API; they cannot protect secrets against arbitrary malicious code
-inside the same process. Future trusted live wiring must not inject a fetch
+inside the same process. The trusted private manual wiring must not inject a fetch
 implementation that ignores manual redirects or captures credentials.
+
+## Step 4B manual process (ADR-021)
+
+Prepared offline only; no authenticated real request has been executed. After
+independent review and Bruno's explicit real-session approval, the root command
+`npm run iol:verify:manual` launches `dist/manual.js` separately from the API.
+No env/file credential loading or CLI credential options exist. Both username
+and password use hidden terminal input. TTY input/output is mandatory, pasted/
+batched input is rejected and terminal mode is restored on cancellation/error.
+Use a private terminal without recording, debug/preload/HTTP tracing or diagnostic
+dumps. The JavaScript process is trusted, not a sandbox against instrumentation.
+
+No network at startup. `AUTENTICAR SESION APROBADA` explicitly requests one login;
+the private auth boundary fixes POST, origin/path `/token` and form-urlencoded
+username/password/grant_type=password. It is separate from the GET allowlist,
+which still rejects POST and `/token`. There is no generic request or public
+auth export. Only documented token fields are accepted; access_token/token_type/
+positive int32 expires_in are required locally, other documented fields optional
+bounded strings. token_type accepts only bearer/Bearer. Date strings have no
+inferred semantics, especially .refreshexpires. Refresh token is discarded.
+
+After auth, hidden actions 1–4 choose instrument, quote detail, account state and
+portfolio, respectively; `salir` exits. Targets are fixed bCBA/AL30 and argentina.
+One action = at most one read; each action runs once, maximum four reads. Invalid/
+repeated actions or any failure end the session, never retry or advance. No URL,
+symbol or market menu, writes, history, profile, polling or automatic refresh.
+
+The entire runner lasts at most five minutes from startup; token use is also
+limited by positive expires_in measured conservatively from auth request start.
+Expiry, error and cancellation dispose the private transport and abort requests.
+Credentials/form/response references are released as soon as practical, not
+cryptographically erased. There is no provider-revocation claim or password cache.
+Auth uses a 10-second timeout, 64 KiB body cap and strict UTF-8/JSON media types;
+reads keep the existing 10-second/1 MiB limits. No error-body parsing or Retry-After
+interpretation. These are local policies, not assumed provider guarantees.
+
+Per-operation summaries contain fixed field names, type/presence/null information,
+counts and validation labels only. No values of balances, holdings, amounts,
+prices, timestamps or numeric lexemes are printed. Invalid schemas produce only
+a fixed category, not raw unknown fields. Synthetic tests verify lexeme precision;
+`lossless_validated` is parser/schema evidence, not a provider precision guarantee.
+No credentials, tokens, account numbers or complete DTO/raw bodies reach output.
+See the runbook for remaining unknowns, incident/rotation steps and acceptance.
 
 ## Validation
 

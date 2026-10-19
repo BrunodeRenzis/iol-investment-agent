@@ -8,11 +8,12 @@ export interface IolTransport {
   read(request: ReadRequest): Promise<string>;
 }
 
-/** No default/global fetch: connecting this transport requires future gated wiring. */
+/** No default/global fetch: private manual wiring is gated by ADR-021. */
 export class AuthenticatedReadTransport implements IolTransport {
-  readonly #token: string;
+  #token: string | undefined;
   readonly #fetch: typeof fetch;
   readonly #timeoutMs: number;
+  readonly #controllers = new Set<AbortController>();
   constructor(token: string, fetcher: typeof fetch, timeoutMs = 10_000) {
     if (
       typeof token !== 'string' ||
@@ -35,18 +36,26 @@ export class AuthenticatedReadTransport implements IolTransport {
     return '[IOL transport: private]';
   }
 
+  dispose(): void {
+    this.#token = undefined;
+    for (const controller of this.#controllers) controller.abort();
+    this.#controllers.clear();
+  }
+
   async read(request: ReadRequest): Promise<string> {
     request = Object.freeze({ ...request });
     validateRequest(request);
+    if (this.#token === undefined) throw new IolError('authentication_failure');
     // Snapshot validated primitives before crossing an async boundary.
     const url = request.origin + request.path;
     const controller = new AbortController();
+    this.#controllers.add(controller);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let rejectAbort: (() => void) | undefined;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        controller.abort();
-        reject(new IolError('timeout'));
-      }, this.#timeoutMs);
+      rejectAbort = () => reject(new IolError('timeout'));
+      controller.signal.addEventListener('abort', rejectAbort, { once: true });
+      timer = setTimeout(() => controller.abort(), this.#timeoutMs);
     });
     try {
       return await Promise.race([
@@ -60,6 +69,9 @@ export class AuthenticatedReadTransport implements IolTransport {
       throw new IolError('network_failure');
     } finally {
       clearTimeout(timer);
+      this.#controllers.delete(controller);
+      if (rejectAbort)
+        controller.signal.removeEventListener('abort', rejectAbort);
     }
   }
 

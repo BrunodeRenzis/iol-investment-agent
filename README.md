@@ -13,9 +13,11 @@ bignumber.js 11.1.5 (ADR-019). Step 3 research is recorded in
 [the IOL contract evidence register](docs/IOL_CONTRACT.md), corrected against the
 official public Swagger v1/v2. Step 4's read-only adapter is implemented offline in
 `packages/iol` (ADR-020), with four strict GET operations and lossless numeric
-ingestion. **OFFLINE ADAPTER COMPLETE — REAL CALL VERIFICATION PENDING.** The public
-factory accepts synthetic fixtures only; no live wiring, token acquisition or
-financial HTTP endpoint is enabled. Real broker verification, Step 5 aggregation
+ingestion. **OFFLINE ADAPTER COMPLETE — REAL-CALL RUNNER PREPARED — REAL CALL NOT YET EXECUTED.**
+Step 4B (ADR-021) prepares a separate manual process with private password grant,
+hidden credential input and a short session in memory. The public factory still
+accepts synthetic fixtures only; no financial HTTP endpoint exists. Real broker
+verification requires independent review and explicit approval. Step 5 aggregation
 and persistent collection retain separate gates. See the
 [adapter boundary](packages/iol/README.md) and
 [future user-run verification procedure](docs/IOL_MANUAL_VERIFICATION.md).
@@ -58,6 +60,15 @@ npm start
 ```
 
 `GET http://127.0.0.1:3000/health` returns the Phase 0 liveness response. No broker credentials are required for Phase 0.
+
+`npm start` can load `.env` for general API settings. NEVER put IOL username,
+password, access/refresh tokens or configurable broker URLs there or in environment
+variables. The API rejects IOL keys except `IOL_READ_ONLY`. It does not import the
+manual runner. After review and explicit real-session approval only,
+`npm run iol:verify:manual` starts the separate package-local terminal runner.
+It makes no startup request, takes no CLI credentials/options and requires hidden
+interactive input plus one explicit action per request. See the runbook before
+using it; do not run an authenticated session through an agent.
 
 ## Development checks
 
