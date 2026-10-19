@@ -18,6 +18,32 @@ import { AuthenticatedReadTransport } from '../src/internal/transport';
 const denied = (error: unknown): boolean =>
   error instanceof IolError && error.code === 'allowlist_rejection';
 
+void test('instrument request variants remain denied before the network transport', async () => {
+  const approved = makeRequest('instrument', {
+    mercado: 'bCBA',
+    simbolo: 'AL30',
+  });
+  let calls = 0;
+  const transport = new AuthenticatedReadTransport('synthetic-marker', () => {
+    calls++;
+    assert.fail('unapproved request must not reach fetch');
+  });
+  try {
+    for (const request of [
+      { ...approved, path: '/api/v2/BCBA/Titulos/AL30' },
+      { ...approved, path: '/api/v2/bCBA/titulos/AL30' },
+      { ...approved, path: '/api/v2/bCBA/Titulos/AL30?x=1' },
+      { ...approved, method: 'POST' },
+      { ...approved, origin: 'https://other.invalid' },
+      { ...approved, query: '' },
+    ])
+      await assert.rejects(transport.read(request), denied);
+    assert.equal(calls, 0);
+  } finally {
+    transport.dispose();
+  }
+});
+
 void test('invalid public operation parameters never reach the injected transport', () => {
   let calls = 0;
   const adapter = createAdapter({

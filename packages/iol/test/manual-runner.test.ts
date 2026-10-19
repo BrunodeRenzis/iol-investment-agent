@@ -7,6 +7,8 @@ import {
 } from '../src/internal/manual-runner';
 import { validateManualRuntime } from '../src/internal/manual-preflight';
 import { MAX_ACCESS_TOKEN_LENGTH } from '../src/internal/token-policy';
+import { makeRequest, validateRequest } from '../src/internal/allowlist';
+import { AuthenticatedReadTransport } from '../src/internal/transport';
 import {
   accountFixture,
   instrumentFixture,
@@ -112,6 +114,70 @@ void test('each explicit read produces one request; no chained operations or ret
     'https://api.invertironline.com/api/v2/bCBA/Titulos/AL30',
   );
 });
+
+void test('simulated login then exact action 1 preserves the instrument request through validation and transport snapshot', async (context) => {
+  const expected = {
+    origin: 'https://api.invertironline.com',
+    method: 'GET',
+    path: '/api/v2/bCBA/Titulos/AL30',
+  };
+  assert.deepEqual(
+    makeRequest('instrument', { mercado: 'bCBA', simbolo: 'AL30' }),
+    expected,
+  );
+  const read = context.mock.method(
+    AuthenticatedReadTransport.prototype,
+    'read',
+  );
+  const h = harness([...login, '1', 'salir']);
+  assert.equal(await run(h), true);
+  assert.equal(read.mock.callCount(), 1);
+  const request = read.mock.calls[0]!.arguments[0];
+  assert.deepEqual(request, expected);
+  assert.equal(Object.isFrozen(request), true);
+  assert.equal(validateRequest(request), 'instrument');
+  assert.equal(validateRequest(Object.freeze({ ...request })), 'instrument');
+  assert.deepEqual(h.calls, [
+    { method: 'POST', url: 'https://api.invertironline.com/token' },
+    { method: 'GET', url: expected.origin + expected.path },
+  ]);
+  assert.deepEqual(h.prompts, [
+    'action',
+    'username',
+    'password',
+    'action',
+    'action',
+  ]);
+  assert.ok(
+    h.output.some((line) =>
+      line.startsWith('{"operation":"instrument","status":"ok"'),
+    ),
+  );
+  assert.ok(!h.output.join('\n').includes('allowlist_rejection'));
+});
+
+for (const choice of ['', '1 ', '1 instrumento'])
+  void test(`nonexact action ${JSON.stringify(choice)} reproduces the session rejection before any read`, async (context) => {
+    const read = context.mock.method(
+      AuthenticatedReadTransport.prototype,
+      'read',
+      () => {
+        assert.fail('invalid action must not reach read transport');
+      },
+    );
+    const h = harness([...login, choice]);
+    assert.equal(await run(h), false);
+    assert.equal(read.mock.callCount(), 0);
+    assert.deepEqual(h.calls, [
+      { method: 'POST', url: 'https://api.invertironline.com/token' },
+    ]);
+    assert.deepEqual(
+      h.output.filter((line) => line.startsWith('{')),
+      [
+        '{"operation":"session","status":"stopped","category":"allowlist_rejection"}',
+      ],
+    );
+  });
 for (const action of [
   'POST',
   '/api/v2/operar/Comprar',

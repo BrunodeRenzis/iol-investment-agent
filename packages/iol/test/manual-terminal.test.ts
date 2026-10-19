@@ -3,6 +3,11 @@ import { PassThrough } from 'node:stream';
 import type { ReadStream, WriteStream } from 'node:tty';
 import { test } from 'node:test';
 import { createTerminalIO } from '../src/internal/manual-terminal';
+import {
+  runManualVerification,
+  type ManualIO,
+} from '../src/internal/manual-runner';
+import { instrumentFixture } from './fixtures';
 
 function terminal() {
   const modes: boolean[] = [];
@@ -26,6 +31,59 @@ function terminal() {
   );
   return { io, input, output, modes, text: () => text };
 }
+
+for (const enter of ['\r', '\n'])
+  void test(`hidden terminal action 1 with ${JSON.stringify(enter)} reaches the instrument mock once after simulated login`, async () => {
+    const tty = terminal();
+    const inputs = [
+      'AUTENTICAR SESION APROBADA',
+      'synthetic-user',
+      'synthetic-password',
+      '1',
+      'salir',
+    ];
+    const io: ManualIO = {
+      write: (message) => tty.io.write(message),
+      readHidden: (field, signal) => {
+        const value = inputs.shift();
+        assert.notEqual(value, undefined);
+        const result = tty.io.readHidden(field, signal);
+        for (const char of value!) tty.input.emit('data', Buffer.from(char));
+        tty.input.emit('data', Buffer.from(enter));
+        return result;
+      },
+    };
+    const calls: { method: string | undefined; url: unknown }[] = [];
+    const ok = await runManualVerification(
+      io,
+      (url, init) => {
+        calls.push({ method: init?.method, url });
+        return Promise.resolve(
+          new Response(
+            init?.method === 'POST'
+              ? '{"access_token":"synthetic-terminal-access","token_type":"bearer","expires_in":900}'
+              : instrumentFixture,
+            { headers: { 'content-type': 'application/json' } },
+          ),
+        );
+      },
+      [],
+      [],
+      new AbortController().signal,
+      () => undefined,
+    );
+    assert.equal(ok, true);
+    assert.deepEqual(calls, [
+      { method: 'POST', url: 'https://api.invertironline.com/token' },
+      {
+        method: 'GET',
+        url: 'https://api.invertironline.com/api/v2/bCBA/Titulos/AL30',
+      },
+    ]);
+    assert.equal(tty.input.isRaw, false);
+    assert.equal(tty.input.listenerCount('data'), 0);
+    assert.ok(!tty.text().includes('synthetic-'));
+  });
 void test('username and password use raw hidden input without echo or serialization', async () => {
   for (const field of ['username', 'password'] as const) {
     const tty = terminal();
