@@ -64,10 +64,15 @@ Canonical request inputs use exact V2 Swagger spelling only:
 
 Response enums also use exact V2 spelling, including account/security types,
 currencies and the separate balance versus instrument settlement vocabularies.
-The sole response exception is TituloModel.mercado (ADR-023): documented personal
+Response exceptions include TituloModel.mercado (ADR-023): documented personal
 examples bcba and NYSE map explicitly to bCBA and nYSE, respectively; canonical V2
 values map to themselves. This also applies to reused portfolio titles. BCBA and
-arbitrary casing remain rejected. Quote-detail market decoding is unchanged.
+arbitrary casing remain rejected. ADR-024 additionally maps CEDEARS -> cEDEARS
+only for TituloModel.tipo (including reused portfolio titles), and bcba -> bCBA
+only for CotizacionDetalle.mercado, each backed by its own personal example.
+Quote types do not inherit CEDEARS and quote markets do not inherit NYSE. All
+other identity fields retain their exact canonical vocabulary. These are response
+mappings only; requests and post-decoding identity matching remain strict.
 Instrument/detail market and symbol, and portfolio country, must match the request.
 Settlement is preserved from the response, never chosen through an invented query.
 

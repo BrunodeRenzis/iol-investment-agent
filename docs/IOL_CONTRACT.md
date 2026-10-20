@@ -297,9 +297,37 @@ strings, which are not enum aliases.
 Unknown strings still fail with the known schema path and kind enum. Missing,
 null and non-string values retain their specific diagnostic kinds. Canonicalization
 precedes existing request/response identity matching: NYSE cannot satisfy bCBA.
-Quote-detail market decoding and all country/currency/type/settlement/numeric
-policies remain unchanged. Actual compatibility still requires reviewed user-run
-verification. No agent uses real credentials.
+ADR-024 adds exactly the two further response mappings below. All other
+country/currency/type/settlement/numeric policies remain unchanged. Actual
+compatibility still requires reviewed user-run verification. No agent uses real
+credentials.
+
+### Additional personal identity evidence — ADR-024
+
+Offline inspection of the existing local V2 and D snapshots on 2026-10-19 verified
+the V2 SHA-256 above and these exact personal response examples:
+
+| D example                                        | mercado | pais      | tipo            | plazo | moneda         |
+| ------------------------------------------------ | ------- | --------- | --------------- | ----- | -------------- |
+| Titulos / Titulos Titulos / OK (GOLD)            | bcba    | argentina | CEDEARS         | t2    | peso_Argentino |
+| Titulos / Titulos Cotizacion Detalle / Ok (GD30) | bcba    | argentina | titulosPublicos | t2    | peso_Argentino |
+
+Accept only CEDEARS -> cEDEARS for TituloModel.tipo, retaining all canonical V2
+types. The existing reuse of TituloModel for portfolio titles applies this same
+type mapping there; no other portfolio field is widened. CotizacionDetalle.tipo
+does NOT inherit CEDEARS.
+
+Accept only bcba -> bCBA as an additional CotizacionDetalle.mercado spelling,
+based on its own example. It does NOT inherit NYSE or any other title alias.
+Both mappings are exact and response-only; identity checks run after decoding.
+Unknown strings remain enum failures with known schema paths, without raw values.
+Requests continue to require canonical bCBA and unchanged method/origin/path/query
+and symbol validation. No generic case folding or other-context aliases.
+
+These examples concern GOLD and GD30, not a production observation of AL30.
+The user-run evidence remains solely successful auth, instrument GET reaching IOL,
+and instrument.mercado / enum; its wire value remains UNKNOWN. No real call or
+new production evidence was obtained for ADR-024. Step 5 remains unstarted.
 
 ## Exclusions, collision risk and deferred reads
 

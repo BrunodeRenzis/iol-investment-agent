@@ -107,6 +107,9 @@ const identity = {
 export const instrument = object({
   ...identity,
   mercado: titleMarket,
+  // ADR-024: D personal Titulos Titulos example; also reused by portfolio titles.
+  tipo: (value: unknown, path?: string) =>
+    securityType(value === 'CEDEARS' ? 'cEDEARS' : value, path),
   descripcion: optional(stringValue),
 });
 const balance = object({
@@ -179,6 +182,9 @@ export const portfolio = object({
 });
 export const quoteDetail = object({
   ...identity,
+  // ADR-024: only the alias in D's own CotizacionDetalle example.
+  mercado: (value: unknown, path?: string) =>
+    identity.mercado(value === 'bcba' ? 'bCBA' : value, path),
   ultimoPrecio: optional(decimal),
   fechaHora: optional(stringValue),
   variacion: optional(decimal),

@@ -901,3 +901,34 @@ request capability. Offline mock regressions cover acceptance, rejection, identi
 and the manual action-1 chain. No real credentials or operational IOL calls by
 agents; no automatic retry or Step 5 advancement. Further user-run verification
 remains subject to the existing runbook and session approval.
+
+## ADR-024 — Two independently documented response identity aliases
+
+**Status:** Accepted for the user-requested offline correction. Supersedes the
+exact-V2-only policy solely for TituloModel.tipo's CEDEARS and
+CotizacionDetalleModel.mercado's bcba. ADR-023's historical text is retained.
+
+**Date:** 2026-10-19
+
+Existing official D snapshots show CEDEARS in the personal Titulos Titulos response
+(GOLD), and bcba in the personal Titulos Cotizacion Detalle response (GD30).
+The corresponding V2 members are cEDEARS and bCBA. IOL_CONTRACT.md records the
+identity fields and contexts; no advisor or other-product example grants aliases.
+
+Implement only exact response mappings CEDEARS -> cEDEARS for TituloModel.tipo,
+and bcba -> bCBA for CotizacionDetalleModel.mercado. All other inputs go through
+their unchanged canonical enum decoders. No case-insensitive or fuzzy matching.
+Existing portfolio-title reuse inherits the type mapping, with no other portfolio
+changes. Quote types do not inherit CEDEARS; quote markets do not inherit NYSE.
+Unknown strings retain enum diagnostics. Canonical identity must still match the
+request, so normalization never grants cross-market or cross-symbol acceptance.
+
+No changes to request allowlists, canonical routing, country, settlement, currency,
+other types/markets, numeric parsing, authentication or runner state. No Step 5.
+Offline regressions cover canonical/alias acceptance, undocumented variants,
+cross-decoder isolation, portfolio reuse and pre-transport request denial.
+
+Production evidence remains only Bruno's successful auth, reached instrument GET
+and instrument.mercado / enum failure, with exact wire value UNKNOWN. Neither
+CEDEARS nor bcba is claimed to have been received for AL30. No agent-run real call,
+credential use, automatic retry or new real-session authorization.

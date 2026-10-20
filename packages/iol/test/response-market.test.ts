@@ -65,7 +65,7 @@ for (const wire of [
     );
   });
 
-void test('response aliases never grant request aliases or change quote decoding', async () => {
+void test('response aliases never grant request aliases or transfer NYSE to quote decoding', async () => {
   let reads = 0;
   const adapter = createAdapter({
     read: () => {
@@ -85,7 +85,7 @@ void test('response aliases never grant request aliases or change quote decoding
   assert.equal(reads, 0);
   await assert.rejects(
     createOfflineIolAdapter({
-      quoteDetail: quoteFixture.replace('bCBA', 'bcba'),
+      quoteDetail: quoteFixture.replace('bCBA', 'NYSE'),
     }).getQuoteDetail('bCBA', 'AL30'),
     (error: unknown) => {
       assert.deepEqual(schemaDiagnostic(error), {
