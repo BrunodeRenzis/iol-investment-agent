@@ -345,7 +345,13 @@ void test('issued and transported access tokens share the same dedicated length 
   };
   await assert.rejects(
     credentials().authenticate(fetcher, new AbortController().signal),
-    safe,
+    (error: unknown) => {
+      assert.ok(safeError(error));
+      assert.ok(error instanceof IolError);
+      assert.equal(error.code, 'invalid_payload');
+      assert.ok(!inspect(error).includes(token));
+      return true;
+    },
   );
   assert.throws(() => new AuthenticatedReadTransport(token, fetcher), safe);
   assert.equal(calls, 1);

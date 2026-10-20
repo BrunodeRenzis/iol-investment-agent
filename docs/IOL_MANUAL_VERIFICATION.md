@@ -4,7 +4,7 @@
 
 Preparation and offline tests are authorized; real execution is NOT authorized by
 this change. Step 4 remains open. This runbook follows AGENTS.md, ADR-017,
-ADR-020/ADR-021/ADR-022 and IOL_CONTRACT.md. Agents never request, receive or use real
+ADR-020/ADR-021/ADR-022/ADR-025 and IOL_CONTRACT.md. Agents never request, receive or use real
 credentials and never execute an authenticated verification session.
 
 ## Prerequisites before a real session
@@ -147,6 +147,49 @@ separately gated.
 
 ## Session disposal and incident procedure
 
+### Authentication diagnostics (ADR-025)
+
+Authentication failures expose only a fixed category, a closed local stage and,
+when a response was received, an optional integer httpStatus in 100–599. Stages:
+
+| stage           | Local fact                                                         |
+| --------------- | ------------------------------------------------------------------ |
+| before_request  | No authentication fetch was invoked.                               |
+| request         | Fetch was invoked; no response status has been processed.          |
+| response_status | Response received; redirect/status checks are running.             |
+| response_body   | HTTP 200 passed status checks; media type/body/UTF-8 processing.   |
+| token_payload   | Body text obtained; JSON/schema/token/session-lifetime validation. |
+
+An empty body text reaches token_payload and fails JSON validation; a null body
+fails at response_body. An opaque redirect has no reportable HTTP status (status 0
+is omitted). An already-followed redirect can report response_status with 200;
+it is still rejected. Late responses after abort do not change the reported facts.
+
+The following mapping applies to authentication, not the unchanged GET transport:
+
+| Cause                                                                                                 | category               |
+| ----------------------------------------------------------------------------------------------------- | ---------------------- |
+| Fetch rejection/synchronous exception, body stream failure                                            | network_failure        |
+| Actual 10-second authentication timer                                                                 | timeout                |
+| External abort (including SIGINT/runner timer), exhausted local lifetime, discarded credential handle | session_aborted        |
+| 3xx, redirected response, opaqueredirect                                                              | redirect_rejected      |
+| Token endpoint HTTP 401                                                                               | authentication_failure |
+| HTTP 403                                                                                              | authorization_failure  |
+| Other non-200 HTTP status (including 400, 429, 500)                                                   | unexpected_status      |
+| Invalid local credential input, media type/body size/UTF-8/JSON/schema/token fields                   | invalid_payload        |
+
+No provider error body is interpreted: HTTP 401 is not proof of an incorrect
+password. Missing/malformed/oversized access_token now yields invalid_payload at
+token.access_token, using missing/type/null/range/malformed as applicable. Other
+token schema diagnostics use only token.refresh_token, token.token_type,
+token.expires_in, token.unknown and the existing generic roots. Unknown field
+names/values are never emitted. No token lengths, URLs, response bodies, headers,
+reason phrases or exception messages appear.
+
+These facts prove neither remote issuance, remote validity nor revocation.
+They cannot establish refresh lifetime or guarantee all remote tokens expired.
+The same one-POST, zero-retry/refresh/re-login policy and all limits remain.
+
 Completion, salir, cancellation, expiry or error clears reachable credential/token
 references and aborts outstanding requests. End the process. JavaScript and the
 HTTP stack may retain copies until collection: no cryptographic memory wipe or
@@ -164,7 +207,21 @@ local session (including timeout, malformed/oversized response, rejected token,
 content-type mismatch or cancellation), treat a remote token as potentially
 active. Terminate the runner and follow the incident procedure; do NOT retry
 authentication automatically or immediately start another manual attempt.
-The runner emits a fixed warning when auth was attempted without a local session.
+The runner selects only the following fixed warnings from local diagnostic facts:
+
+- before_request:
+  “No se envió la solicitud de autenticación. No se instaló ninguna sesión local.”
+- request:
+  “No se instaló sesión local. No se sabe si IOL recibió la solicitud ni si emitió un token. Tratar el intento como potencialmente activo y seguir la política de espera del runbook antes de reintentar.”
+- response_status with a reportable non-200 status:
+  “IOL respondió con error HTTP y no se instaló sesión local. No reintentar automáticamente; revisar el resultado antes de un nuevo intento aprobado.”
+- response_body/token_payload with HTTP 200:
+  “IOL respondió HTTP 200 pero la respuesta fue rechazada localmente. Un token remoto pudo haberse emitido y debe tratarse como potencialmente activo. No reintentar; seguir la política de espera o revocación oficial del runbook. dispose() no revoca tokens.”
+
+An opaque redirect or already-followed HTTP 200 at response_status uses the
+conservative request warning; it must not falsely claim an HTTP error status.
+The before_request warning concerns only this attempt, not earlier remote sessions.
+No warning asserts that an HTTP rejection proves no token was issued.
 
 Before another approved manual attempt, respect the officially documented access
 lifetime recorded in IOL_CONTRACT.md source A (15 minutes), measured from the

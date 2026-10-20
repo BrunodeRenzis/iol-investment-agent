@@ -932,3 +932,65 @@ Production evidence remains only Bruno's successful auth, reached instrument GET
 and instrument.mercado / enum failure, with exact wire value UNKNOWN. Neither
 CEDEARS nor bcba is claimed to have been received for AL30. No agent-run real call,
 credential use, automatic retry or new real-session authorization.
+
+## ADR-025 — Private local authentication diagnostics
+
+**Status:** Accepted for user-requested offline diagnostic hardening before the
+next real authentication. Supersedes only prior authentication error grouping and
+the generic runner warning. Existing accepted ADR text remains historical.
+
+**Date:** 2026-10-20
+
+### Decision
+
+At the password-grant boundary, authentication_failure means only a received
+HTTP 401 from the token endpoint. HTTP 403 is authorization_failure, redirects
+remain redirect_rejected, and other non-200 statuses remain unexpected_status.
+Fetch rejection/synchronous exception and body-stream errors become network_failure;
+invalid content-type/body bounds/UTF-8/JSON/schema/token fields become invalid_payload.
+Only the existing 10-second auth timer produces timeout. External cancellation,
+including SIGINT and the five-minute runner timer during auth, exhausted local
+lifetime before session installation and disposed credential handles use the single
+new session_aborted category. Invalid local credential input is invalid_payload.
+Session cancellation/expiry in private manual orchestration is session_aborted.
+No cancellation, request, timeout duration or validation acceptance behavior changes.
+
+Store authentication metadata privately in a WeakMap keyed by sanitized IolError.
+The closed stage vocabulary is before_request, request, response_status,
+response_body, token_payload. Assign stages only at local control-flow boundaries,
+never from external exception properties/messages. Include httpStatus only from a
+received response and only if it is an integer in 100–599. Freeze the projection;
+emit no URL, headers, reason phrase, response body, exception text, token value
+or token length. External fetch/stream exceptions cannot supply trusted categories.
+First cancellation cause wins; late responses cannot overwrite failure metadata.
+
+Add only token.access_token, token.refresh_token, token.token_type,
+token.expires_in and token.unknown to the existing schema diagnostic vocabulary.
+The auth-only access-token wrapper preserves the existing 16,384-character and
+bearer acceptance policy, but reports invalid_payload with missing/type/null/range/
+malformed kinds. The shared accessTokenValue and GET transport remain unchanged.
+This ADR scopes authentication_failure/timeout grouping to authentication; it does
+not reclassify existing GET HTTP errors or the shared token validator's errors.
+No new public factory/API is introduced; only session_aborted extends the existing
+public error-code union as required to render internal manual failures.
+
+The runner emits exact fixed warnings selected by stage/status as documented in
+IOL_MANUAL_VERIFICATION.md: before_request states no request; request states
+uncertainty; non-200 response_status states HTTP error without denying issuance;
+HTTP-200 response_body/token_payload states local rejection and possible issuance.
+Opaque redirects without a reportable status and already-followed HTTP 200 use
+the conservative request warning, never a false non-200 assertion.
+
+Stage/httpStatus are sanitized LOCAL diagnostics. They do NOT prove token issuance,
+remote validity or revocation, do NOT interpret provider error bodies, and do NOT
+resolve refresh lifetime/rotation/revocation. The existing incident/waiting policy
+remains. No retry, refresh, re-login, automatic continuation or new network capability.
+One explicit POST /token maximum; zero when rejected before request. No changes
+to request allowlists, instrument/quote adapters, response aliases, portfolio,
+financial primitives, read order or Step 5. All evidence added here is offline.
+
+Tests use an explicit case/category/stage/status table at both the auth boundary
+and runner, assert exact sanitized JSON and fixed warnings, request counts and
+sentinel non-disclosure (including response headers/cookies/challenges/exceptions).
+Additional tests distinguish external cancellation from timeout, prevent forged
+metadata and retain the non-auth shared token validator behavior.

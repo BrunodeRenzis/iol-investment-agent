@@ -4,6 +4,7 @@ const ERROR_CODES = [
   'network_failure',
   'timeout',
   'authentication_failure',
+  'session_aborted',
   'authorization_failure',
   'unexpected_status',
   'redirect_rejected',

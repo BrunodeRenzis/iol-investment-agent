@@ -13,6 +13,11 @@ import {
 } from './manual-summary';
 import { assertManualRuntime } from './manual-preflight';
 import { schemaDiagnostic } from './schema-diagnostic';
+import {
+  authDiagnostic,
+  authWarning,
+  recordAuthFailure,
+} from './auth-diagnostic';
 
 export type InputField = 'action' | 'username' | 'password';
 export interface ManualIO {
@@ -47,7 +52,6 @@ export async function runManualVerification(
   stopSignal.addEventListener('abort', stop, { once: true });
   if (stopSignal.aborted) stop();
   const timer = setTimeout(stop, MANUAL_SESSION_MS);
-  let authAttempted = false;
   try {
     preflight();
     io.write(
@@ -66,7 +70,6 @@ export async function runManualVerification(
     username = undefined;
     password = undefined;
     preflight();
-    authAttempted = true;
     session = await credentials.authenticate(fetcher, controller.signal);
     credentials = undefined;
     session.signal.addEventListener('abort', stop, { once: true });
@@ -82,8 +85,7 @@ export async function runManualVerification(
       );
       const choice = await io.readHidden('action', controller.signal);
       if (choice === 'salir') return true;
-      if (controller.signal.aborted)
-        throw new IolError('authentication_failure');
+      if (controller.signal.aborted) throw new IolError('session_aborted');
       if (choice !== String(nextAction))
         throw new IolError('allowlist_rejection');
       preflight();
@@ -108,8 +110,15 @@ export async function runManualVerification(
       if (nextAction === 4) return true;
       nextAction++;
     }
-    throw new IolError('authentication_failure');
-  } catch (error: unknown) {
+    throw new IolError('session_aborted');
+  } catch (caught: unknown) {
+    const error =
+      controller.signal.aborted && !authDiagnostic(caught)
+        ? session
+          ? new IolError('session_aborted')
+          : recordAuthFailure(new IolError('session_aborted'), 'before_request')
+        : caught;
+    const authentication = authDiagnostic(error);
     // Never inspect/serialize the external exception, cause, field names or payload.
     const code = new IolError(
       error instanceof IolError ? error.code : 'invalid_payload',
@@ -119,15 +128,13 @@ export async function runManualVerification(
         operation: 'session',
         status: 'stopped',
         category: code,
+        ...(authentication ?? {}),
         ...(schemaDiagnostic(error)
           ? { diagnostic: schemaDiagnostic(error) }
           : {}),
       }),
     );
-    if (authAttempted && !session)
-      io.write(
-        'La autenticación pudo emitir un token remoto. No reintentar: terminar y seguir el procedimiento de incidente y espera/revocación oficial del runbook. dispose() no revoca tokens.',
-      );
+    if (authentication && !session) io.write(authWarning(authentication));
     return false;
   } finally {
     clearTimeout(timer);

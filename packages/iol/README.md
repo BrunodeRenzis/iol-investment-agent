@@ -135,7 +135,7 @@ JSON/inspection representations. It constructs Authorization only for validated
 requests. No real token has been loaded during implementation or offline tests.
 
 There are no payload logs. Errors expose only fixed codes: `allowlist_rejection`,
-`invalid_payload`, `network_failure`, `timeout`, `authentication_failure`,
+`invalid_payload`, `network_failure`, `timeout`, `authentication_failure`, `session_aborted`,
 `authorization_failure`, `unexpected_status`, `redirect_rejected`, and
 `offline_fixture_missing`. External messages, causes and error bodies are dropped.
 HTTP 401/403 are categorized by status; undocumented error bodies are not parsed.
@@ -208,6 +208,18 @@ a remote token active even without a local session. No automatic retry; dispose(
 is not revocation. See the runbook for waiting/official-revocation policy, runtime
 unknowns, incident steps and acceptance. ADR-022 supersedes the affected ADR-021
 policies without rewriting that historical record.
+
+ADR-025 adds private authentication stage/httpStatus diagnostics and fixed warnings.
+Only a token-endpoint HTTP 401 maps to authentication_failure during auth; network/
+stream failures map to network_failure, malformed token responses (including UTF-8
+and access-token validation) to invalid_payload, and external cancellation/local
+expiry to session_aborted. Only the ten-second auth timer maps to timeout.
+The GET transport and shared token validator retain their existing classifications.
+Stages are before_request, request, response_status, response_body, token_payload;
+httpStatus is present only for a received response with an integer status 100–599.
+No values, lengths, bodies, headers, URLs or provider messages are disclosed.
+Diagnostics are local facts, not evidence of remote issuance, validity or revocation.
+The runbook specifies exact warnings and the unchanged waiting/incident policy.
 
 ## Validation
 

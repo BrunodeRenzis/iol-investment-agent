@@ -28,7 +28,13 @@ function allow(root: string, names: readonly string[] = []): void {
 }
 const identity = ['simbolo', 'mercado', 'pais', 'tipo', 'plazo', 'moneda'];
 allow('payload');
-allow('token');
+allow('token', [
+  'access_token',
+  'refresh_token',
+  'token_type',
+  'expires_in',
+  'unknown',
+]);
 allow('instrument', [...identity, 'descripcion']);
 allow('quoteDetail', [
   ...identity,
