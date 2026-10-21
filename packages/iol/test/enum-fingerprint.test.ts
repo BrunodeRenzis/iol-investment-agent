@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { inspect } from 'node:util';
 import { test } from 'node:test';
-import { createOfflineIolAdapter, IolError } from '../src';
+import { createOfflineIolAdapter, IolError, type IolMarket } from '../src';
 import { createAdapter } from '../src/internal/adapter';
-import { rejectedEnumFingerprint } from '../src/internal/enum-fingerprint';
+import { makeRequest, validateRequest } from '../src/internal/allowlist';
+import {
+  recordRejectedEnumFingerprint,
+  rejectedEnumFingerprint,
+} from '../src/internal/enum-fingerprint';
 import { instrument } from '../src/internal/models';
 import { runManualVerification } from '../src/internal/manual-runner';
 import {
@@ -63,12 +67,12 @@ const cases = [
     },
   },
   {
-    name: 'canonical pattern with uppercase initial',
-    wire: 'TitulosPublicos',
+    name: 'canonical pattern with uppercase initial and rejected separator',
+    wire: 'Titulos_Publicos',
     expected: {
       foldsToV2Member: 'titulosPublicos',
       casing: 'first_upper',
-      separators: 'none',
+      separators: 'underscore',
       padded: false,
     },
   },
@@ -227,17 +231,18 @@ const sentinels = {
   header: 'SYNTHETIC_HEADER_SENTINEL',
   exception: 'SYNTHETIC_EXCEPTION_SENTINEL',
 };
-async function run(bodies: readonly string[], rejectedFetch?: Error) {
+async function run(
+  bodies: readonly string[],
+  rejectedFetch?: Error,
+  actions: readonly string[] = ['1', '2', '3', '4'],
+) {
   const output: string[] = [];
   const requests: { url: string; method: string | undefined }[] = [];
   const inputs = [
     'AUTENTICAR SESION APROBADA',
     sentinels.username,
     sentinels.password,
-    '1',
-    '2',
-    '3',
-    '4',
+    ...actions,
   ];
   let index = 0;
   const ok = await runManualVerification(
@@ -377,6 +382,199 @@ void test('all 49 V2 members and the existing alias keep their exact DTO behavio
       return true;
     },
   );
+});
+
+void test('ADR-027 historical fingerprint has exactly one ASCII preimage', () => {
+  // separators=none excludes both characters removed by folding. ASCII lower-
+  // casing can then yield this key only through its 2^15 letter-case variants.
+  const base = 'titulospublicos';
+  const target = {
+    foldsToV2Member: 'titulosPublicos',
+    casing: 'first_upper',
+    separators: 'none',
+    padded: false,
+  };
+  const matches: string[] = [];
+  assert.equal(2 ** base.length, 32768);
+  for (let mask = 0; mask < 2 ** base.length; mask++) {
+    const candidate = [...base]
+      .map((letter, index) =>
+        (mask & (1 << index)) !== 0 ? letter.toUpperCase() : letter,
+      )
+      .join('');
+    // Exercise the unchanged classifier independently of current acceptance.
+    // Synthetic errors reconstruct the historical rejection, not live payloads.
+    const error = schemaFailure('enum', 'instrument.tipo');
+    recordRejectedEnumFingerprint(error, candidate, schemaDiagnostic(error));
+    if (JSON.stringify(fingerprint(error)) === JSON.stringify(target))
+      matches.push(candidate);
+  }
+  assert.deepEqual(matches, ['TitulosPublicos']);
+});
+
+void test('ADR-027 exact alias and canonical type succeed without rejected fingerprint', async () => {
+  for (const wire of ['TitulosPublicos', 'titulosPublicos']) {
+    const dto = await createOfflineIolAdapter({
+      instrument: instrumentBody(wire),
+    }).getInstrument('bCBA', 'AL30');
+    assert.deepEqual(dto, JSON.parse(instrumentFixture));
+    assert.equal(fingerprint(dto), undefined);
+    assert.ok(!Object.hasOwn(dto, 'rejectedEnumFingerprint'));
+    const result = await run([instrumentBody(wire)], undefined, ['1', 'salir']);
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.requests, [
+      { url: 'https://api.invertironline.com/token', method: 'POST' },
+      {
+        url: 'https://api.invertironline.com/api/v2/bCBA/Titulos/AL30',
+        method: 'GET',
+      },
+    ]);
+    assert.ok(!result.output.join('\n').includes('rejectedEnumFingerprint'));
+    assert.ok(!result.output.join('\n').includes('invalid_payload'));
+  }
+});
+
+void test('ADR-027 adds no other spelling or quote-detail type alias', async () => {
+  for (const value of [
+    'TITULOSPUBLICOS',
+    'titulospublicos',
+    'TITULOS_PUBLICOS',
+    'Bonos',
+    'BONOS',
+    'TitulosPublicos ',
+    ' TitulosPublicos',
+  ]) {
+    await assert.rejects(
+      createOfflineIolAdapter({
+        instrument: instrumentBody(value),
+      }).getInstrument('bCBA', 'AL30'),
+      (error: unknown) => {
+        assert.ok(error instanceof IolError);
+        assert.equal(error.code, 'invalid_payload');
+        assert.deepEqual(schemaDiagnostic(error), {
+          path: 'instrument.tipo',
+          kind: 'enum',
+        });
+        assert.notEqual(fingerprint(error), undefined);
+        return true;
+      },
+    );
+  }
+  await assert.rejects(
+    createOfflineIolAdapter({
+      quoteDetail: instrumentBody('TitulosPublicos'),
+    }).getQuoteDetail('bCBA', 'AL30'),
+    (error: unknown) => {
+      assert.deepEqual(schemaDiagnostic(error), {
+        path: 'quoteDetail.tipo',
+        kind: 'enum',
+      });
+      assert.equal(fingerprint(error), undefined);
+      return true;
+    },
+  );
+});
+
+void test('ADR-027 canonicalization preserves identity checks and portfolio field boundaries', async () => {
+  const adapter = createOfflineIolAdapter({
+    instrument: instrumentBody('TitulosPublicos'),
+  });
+  for (const [market, symbol] of [
+    ['nYSE', 'AL30'],
+    ['bCBA', 'GD30'],
+  ] as const) {
+    await assert.rejects(
+      adapter.getInstrument(market, symbol),
+      (error: unknown) => {
+        assert.deepEqual(schemaDiagnostic(error), {
+          path: 'instrument',
+          kind: 'malformed',
+        });
+        assert.equal(fingerprint(error), undefined);
+        return true;
+      },
+    );
+  }
+  const portfolio = portfolioFixture.replace(
+    'titulosPublicos',
+    'TitulosPublicos',
+  );
+  const canonical = await createOfflineIolAdapter({
+    portfolio: portfolioFixture,
+  }).getPortfolio('argentina');
+  assert.deepEqual(
+    await createOfflineIolAdapter({ portfolio }).getPortfolio('argentina'),
+    canonical,
+  );
+  for (const [previous, value, field] of [
+    ['"pais":"argentina","tipo"', '"pais":"Argentina","tipo"', 'pais'],
+    ['bCBA', 'BCBA', 'mercado'],
+    ['t0', 'T0', 'plazo'],
+    ['dolar_Estadounidense', 'Dolar_Estadounidense', 'moneda'],
+    ['TitulosPublicos', 'TITULOSPUBLICOS', 'tipo'],
+  ]) {
+    await assert.rejects(
+      createOfflineIolAdapter({
+        portfolio: portfolio.replace(previous!, value!),
+      }).getPortfolio('argentina'),
+      (error: unknown) => {
+        assert.deepEqual(schemaDiagnostic(error), {
+          path: `portfolio.activos[].titulo.${field}`,
+          kind: 'enum',
+        });
+        assert.equal(fingerprint(error), undefined);
+        return true;
+      },
+    );
+  }
+});
+
+void test('ADR-027 response alias grants no request capability before transport', async () => {
+  const requests: unknown[] = [];
+  const adapter = createAdapter({
+    read: (request) => {
+      requests.push(request);
+      return Promise.resolve(instrumentBody('TitulosPublicos'));
+    },
+  });
+  assert.throws(
+    () => adapter.getInstrument('TitulosPublicos' as IolMarket, 'AL30'),
+    { code: 'allowlist_rejection' },
+  );
+  assert.throws(() => adapter.getInstrument('bCBA', 'TitulosPublicos'), {
+    code: 'allowlist_rejection',
+  });
+  assert.throws(
+    () =>
+      makeRequest('instrument', {
+        mercado: 'bCBA',
+        simbolo: 'AL30',
+        tipo: 'TitulosPublicos',
+      }),
+    { code: 'allowlist_rejection' },
+  );
+  const request = makeRequest('instrument', {
+    mercado: 'bCBA',
+    simbolo: 'AL30',
+  });
+  for (const path of [
+    '/api/v2/TitulosPublicos/Titulos/AL30',
+    '/api/v2/bCBA/TitulosPublicos/AL30',
+    '/api/v2/bCBA/Titulos/AL30/TitulosPublicos',
+    '/api/v2/bCBA/Titulos/AL30?tipo=TitulosPublicos',
+  ])
+    assert.throws(() => validateRequest({ ...request, path }), {
+      code: 'allowlist_rejection',
+    });
+  assert.equal(requests.length, 0);
+  await adapter.getInstrument('bCBA', 'AL30');
+  assert.deepEqual(requests, [
+    {
+      origin: 'https://api.invertironline.com',
+      method: 'GET',
+      path: '/api/v2/bCBA/Titulos/AL30',
+    },
+  ]);
 });
 
 void test('trusted fingerprints never propagate under another operation or default fallback', () => {

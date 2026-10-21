@@ -63,10 +63,17 @@ const identity = {
 export const instrument = object({
   ...identity,
   mercado: titleMarket,
-  // ADR-024: D personal Titulos Titulos example; also reused by portfolio titles.
+  // ADR-024 documentary alias and ADR-027 user-run production spelling.
+  // Shared TituloModel reuse also applies these exact aliases to portfolio titles.
   tipo: (value: unknown, path?: string) => {
     try {
-      return securityType(value === 'CEDEARS' ? 'cEDEARS' : value, path);
+      const canonical =
+        value === 'CEDEARS'
+          ? 'cEDEARS'
+          : value === 'TitulosPublicos'
+            ? 'titulosPublicos'
+            : value;
+      return securityType(canonical, path);
     } catch (error: unknown) {
       // Only this enum-rejection branch may originate the private fingerprint.
       recordRejectedEnumFingerprint(error, value, schemaDiagnostic(error));

@@ -1,6 +1,6 @@
 ﻿# IOL contract research — Phase 1 Step 3 correction
 
-Updated **2026-10-19** in the real repository working tree. Step 3 researched the
+Updated **2026-10-21** in the real repository working tree. Step 3 researched the
 official contract; Step 4 now implements its four initial reads offline (ADR-020).
 Agents have used no real credentials or authenticated operational calls. Bruno
 has reported a partial user-run production verification, recorded below.
@@ -47,9 +47,53 @@ No successful instrument decoding or actions 2–4 are established by this repor
 Step 4 remains incomplete and Step 5 remains unstarted. ADR-023's offline fix uses
 official documentation evidence independently of that unknown production value.
 
+### VERIFIED BY USER-RUN PRODUCTION READ — uniquely inferred type spelling
+
+Recorded 2026-10-21 from Bruno's later manual authentication and action-1 AL30 GET.
+The user supplied only the sanitized stopped-session JSON: invalid_payload at
+instrument.tipo / enum, with this ADR-026 rejectedEnumFingerprint:
+
+```json
+{
+  "foldsToV2Member": "titulosPublicos",
+  "casing": "first_upper",
+  "separators": "none",
+  "padded": false
+}
+```
+
+**DOCUMENTARY EVIDENCE:** V2 definitions.TituloModel.properties.tipo.enum includes
+titulosPublicos. The official personal GD30 quote-detail example also uses that
+canonical spelling, but establishes no alternate title spelling.
+
+**PRODUCTION EVIDENCE:** TituloModel.tipo for AL30 was rejected by the canonical
+decoder (which already accepted CEDEARS). The reported fingerprint uniquely
+determines TitulosPublicos under the unchanged ADR-026 algorithm. This is a spelling
+inferred from user-run production evidence, NOT an official-document example or a
+raw value printed by the runner. No response body was printed or stored by the
+runner, supplied to an agent or copied into this evidence register.
+
+Uniqueness proof: separators none excludes ASCII space and underscore, the only
+characters removed by folding. Printable ASCII lowercasing can therefore produce
+titulospublicos only from its 2^15 letter-case variants. first_upper requires exact
+equality with the canonical member with its initial letter uppercased, leaving
+only TitulosPublicos. This candidate is neither all_upper nor all_lower, so earlier
+branches do not intercept it. It has no separators/padding and passes the length
+guard. An offline exhaustive regression over all 32,768 candidates confirms exactly
+one preimage. This particular fingerprint is identifying even though other
+fingerprints may have multiple preimages; no general non-reconstructability claim.
+
+ADR-027 authorizes only the exact response mapping TitulosPublicos -> titulosPublicos
+for TituloModel.tipo, including its existing reuse inside portfolio titles.
+No other portfolio field or quote-detail type changes. Folding remains diagnostic,
+never an acceptance mechanism. Full real instrument decoding and actions 2–4 are
+still unverified; this failed read establishes neither. The earlier market wire
+value remains UNKNOWN. Step 4 remains open and Step 5 remains unstarted.
+
 ## Evidence labels and correction
 
-- **VERIFIED** means supported by the cited official contract, not live-tested.
+- **VERIFIED** means supported by the cited official contract unless explicitly
+  labeled USER-RUN PRODUCTION READ; production evidence is attributed separately.
 - **UNKNOWN — must be verified** marks unresolved runtime or semantic facts.
 - **DEFERRED** means intentionally outside the initial adapter or approved phase.
 
@@ -312,7 +356,7 @@ the V2 SHA-256 above and these exact personal response examples:
 | Titulos / Titulos Titulos / OK (GOLD)            | bcba    | argentina | CEDEARS         | t2    | peso_Argentino |
 | Titulos / Titulos Cotizacion Detalle / Ok (GD30) | bcba    | argentina | titulosPublicos | t2    | peso_Argentino |
 
-Accept only CEDEARS -> cEDEARS for TituloModel.tipo, retaining all canonical V2
+ADR-024 accepts only CEDEARS -> cEDEARS for TituloModel.tipo, retaining all canonical V2
 types. The existing reuse of TituloModel for portfolio titles applies this same
 type mapping there; no other portfolio field is widened. CotizacionDetalle.tipo
 does NOT inherit CEDEARS.
@@ -325,9 +369,11 @@ Requests continue to require canonical bCBA and unchanged method/origin/path/que
 and symbol validation. No generic case folding or other-context aliases.
 
 These examples concern GOLD and GD30, not a production observation of AL30.
-The user-run evidence remains solely successful auth, instrument GET reaching IOL,
-and instrument.mercado / enum; its wire value remains UNKNOWN. No real call or
-new production evidence was obtained for ADR-024. Step 5 remains unstarted.
+At ADR-024 adoption, user-run evidence was solely successful auth, instrument GET
+reaching IOL, and instrument.mercado / enum; that market wire value remains UNKNOWN.
+No real call or new production evidence was obtained for ADR-024. The later type
+spelling inferred from production and ADR-027's single additional type alias are
+recorded separately above. Step 5 remains unstarted.
 
 ## Exclusions, collision risk and deferred reads
 

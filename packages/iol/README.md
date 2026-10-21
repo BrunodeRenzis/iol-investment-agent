@@ -71,7 +71,12 @@ arbitrary casing remain rejected. ADR-024 additionally maps CEDEARS -> cEDEARS
 only for TituloModel.tipo (including reused portfolio titles), and bcba -> bCBA
 only for CotizacionDetalle.mercado, each backed by its own personal example.
 Quote types do not inherit CEDEARS and quote markets do not inherit NYSE. All
-other identity fields retain their exact canonical vocabulary. These are response
+other identity fields retain their exact canonical vocabulary. ADR-027 additionally
+maps only exact TitulosPublicos -> titulosPublicos in TituloModel.tipo, also reused
+by portfolio titles. This spelling is inferred uniquely from a user-run AL30
+production fingerprint, not claimed as an official-document example. Quote types
+do not inherit it. TITULOSPUBLICOS, titulospublicos, TITULOS_PUBLICOS, Bonos and BONOS
+remain rejected; no folding is used for acceptance. These are response
 mappings only; requests and post-decoding identity matching remain strict.
 Instrument/detail market and symbol, and portfolio country, must match the request.
 Settlement is preserved from the response, never chosen through an invented query.
@@ -238,6 +243,13 @@ auth or other field receives it. Forged exception properties are ignored. The
 fingerprint is neither documentary evidence nor an alias: invalid_payload still
 ends the session with no DTO, next action or retry. Future aliases require official
 evidence and a separate ADR. Request and response acceptance policies are unchanged.
+
+ADR-027 narrowly adds the title-type alias described above after an exact
+uniqueness proof. The combination titulosPublicos / first_upper / none / false
+identifies one spelling under ADR-026, despite its coarse labels. The proof tests
+all 32,768 possible ASCII case variants, independently of current acceptance.
+Accepted TitulosPublicos never reaches the fingerprint rejection branch; unknown
+rejected values retain the same diagnostic. No diagnostic code or scope changes.
 
 ## Validation
 

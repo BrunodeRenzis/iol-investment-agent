@@ -171,10 +171,13 @@ underscores. No arbitrary string, body, header, symbol, hash or token is emitted
 Portfolio/account/balance/auth/quote failures and other instrument fields retain
 their existing diagnostics without this fingerprint.
 
-Share only the sanitized JSON, never a payload or credential. This fingerprint
-cannot reveal the exact wire spelling, establish official evidence or authorize
-a new alias. Unknown production values remain UNKNOWN. Independent review and
-official evidence plus a new ADR are required before changing accepted values.
+Share only the sanitized JSON, never a payload or credential. The fingerprint
+does not print the wire string, but some combinations can uniquely identify it:
+ADR-027 proves this for titulosPublicos / first_upper / none / false and separately
+authorizes only TitulosPublicos -> titulosPublicos. It is inferred production
+evidence, not documentary evidence. Other unknown values remain UNKNOWN unless
+separately established. A fingerprint never authorizes an alias automatically;
+further changes require separate evidence, review and a new ADR.
 The existing incident/waiting policy still applies after this stopped session.
 
 ## Session disposal and incident procedure

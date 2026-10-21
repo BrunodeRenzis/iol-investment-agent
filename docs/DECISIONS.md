@@ -1064,3 +1064,65 @@ non-propagation, private-context exclusion, forged metadata, synthetic sentinel
 non-disclosure, and exact runner output/request counts. No real credentials or
 IOL calls are used. Further real verification remains user-run and subject to
 independent implementation review and the existing approval/incident runbook.
+
+## ADR-027 — Exact title type alias from uniquely identifying production evidence
+
+**Status:** Accepted for the user's conditional request after proving uniqueness
+offline. Supersedes ADR-026's blanket non-reconstructability claim for this specific
+fingerprint and permits this single alias based on attributed production evidence
+plus the documented V2 canonical member. No general acceptance-policy relaxation.
+Earlier ADR text remains the historical record.
+
+**Date:** 2026-10-21
+
+### Evidence and uniqueness
+
+Bruno reports a successful manual authentication and real AL30 instrument GET,
+rejected at instrument.tipo / enum. The sanitized fingerprint is
+foldsToV2Member titulosPublicos, casing first_upper, separators none, padded false.
+No agent used credentials or made a broker request. No raw body was printed or
+stored by the runner, provided to an agent or persisted in this repository.
+
+Under the unchanged ADR-026 classifier, separators none means no ASCII space or
+underscore: removing separators is the identity operation. The ASCII guard and
+foldsToV2Member constrain the input to the 32,768 letter-case variants of
+titulospublicos. first_upper is an exact comparison with the canonical spelling
+with its first letter forced uppercase. Thus the sole possible input is
+TitulosPublicos. It passes the earlier non-uniform-case conditions, length guard,
+no-separator and no-padding checks. Exhaustive offline enumeration confirms one
+match through the actual classifier; it is independent of the new decoder alias.
+
+This corrects the earlier overly broad claim that a fingerprint cannot identify
+an exact spelling. Here the spelling is logically inferred from user-reported
+production metadata, not directly printed or read from a response body. Do not
+extend this conclusion to other fingerprints or treat it as documentary evidence.
+The official V2 schema independently establishes canonical titulosPublicos;
+IOL_CONTRACT.md separates documentary and production provenance explicitly.
+
+### Decision and limits
+
+Add only the exact response comparison TitulosPublicos -> titulosPublicos in
+TituloModel.tipo. Keep CEDEARS -> cEDEARS and all 49 canonical V2 members unchanged.
+No lowercase/uppercase/fuzzy comparison or diagnostic folding for acceptance.
+TITULOSPUBLICOS, titulospublicos, TITULOS_PUBLICOS, Bonos, BONOS and other spellings
+remain rejected. bONOS remains its own existing canonical type, never an alias
+of titulosPublicos. No market/country/currency/settlement changes.
+
+Existing TituloModel reuse technically applies the alias to portfolio titles as
+well. This is model reuse, not a production observation of portfolio data; no other
+portfolio field is widened. CotizacionDetalle.tipo does not inherit the alias.
+Existing market/symbol identity validation runs after decoding as before.
+
+An accepted TitulosPublicos value does not enter the rejection branch and creates
+no rejectedEnumFingerprint. Other rejected strings retain the unchanged private
+diagnostic, propagation and action-1-only output policy. The fingerprint code is
+unchanged and never authorizes acceptance automatically. All further aliases
+require separate evidence, explicit review and their own ADR; this decision
+authorizes no spelling beyond the one proved here.
+
+Request allowlists, auth/token handling, retries/refresh/re-login, numeric parsing,
+quote decoder and Step 5 remain unchanged. Offline tests prove uniqueness,
+canonical/alias behavior, rejected variants, no fingerprint on accepted input,
+portfolio reuse with strict other fields, post-normalization identity rejection
+and pre-transport request denial. Real action-1 completion remains pending a new
+approved user-run session under the existing incident/waiting procedure.
