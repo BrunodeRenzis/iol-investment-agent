@@ -994,3 +994,73 @@ and runner, assert exact sanitized JSON and fixed warnings, request counts and
 sentinel non-disclosure (including response headers/cookies/challenges/exceptions).
 Additional tests distinguish external cancellation from timeout, prevent forged
 metadata and retain the non-auth shared token validator behavior.
+
+## ADR-026 — Restricted rejected instrument-type fingerprint
+
+**Status:** Accepted for user-requested offline diagnostic hardening, following
+independent design review. Narrowly extends ADR-022's category/path/kind-only
+output policy; no rejected wire value is disclosed or accepted.
+
+**Date:** 2026-10-21
+
+### Context and decision
+
+Bruno reports a later successful manual authentication and an AL30 instrument GET
+that passed mercado and pais decoding, then stopped at instrument.tipo / enum.
+The rejected type was a string; its exact wire spelling remains UNKNOWN. This
+does not establish full instrument identity validation or successful action 1.
+Existing local official examples establish GOLD's CEDEARS and GD30's
+CotizacionDetalle titulosPublicos, not an alternate personal bond TituloModel.tipo
+spelling. Do not invent an alias or extrapolate between these models.
+
+Add optional rejectedEnumFingerprint only for operation instrument, exact schema
+path instrument.tipo, kind enum, originating in that type decoder's rejection
+branch. The runner emits it only while action 1's instrument read is pending.
+No portfolio/title reuse, account/balance type, liquidation, authentication,
+quote detail or other identity field may originate or emit it. No public export.
+
+Reuse the unchanged 49-member V2 security-type tuple as a single private source
+for strict decoding and diagnostic classification. Only rejected strings enter
+the diagnostic classifier. Check at most 64 characters and printable ASCII first;
+non-ASCII, controls and overflow produce only none / charset other. Do not
+truncate, normalize Unicode or report lengths. Diagnostic folding lowercases and
+removes only ASCII spaces and underscores. It never participates in acceptance.
+
+Zero matches emits only foldsToV2Member none and charset: ascii_letters means a
+nonempty ASCII-letter string; ascii_word means a nonempty ASCII-letter/digit/
+underscore string not already classified as letters; everything else is other.
+Multiple matches emits only foldsToV2Member ambiguous. In particular,
+oBLIGACIONESNEGOCIABLES and obligacionesNegociables collide; neither wins.
+
+One match emits the canonical member from the code tuple, casing, separators and
+padded. Separators is none/underscore/space/mixed, considering ASCII spaces and
+underscores anywhere. Padded means leading or trailing ASCII space (not underscore).
+After removing separators, casing checks all_upper then all_lower; first_upper
+and first_lower mean the canonical member's case pattern with its initial letter
+forced uppercase/lowercase, respectively. Otherwise it is mixed. Thus the label
+describes a closed classification, not a reconstruction of the wire spelling.
+All fields come from code constants or a boolean; no input substring/hash/value.
+
+Freeze each projection and store it in its own private WeakMap keyed by the
+sanitized error. payloadFailure copies it to its new error only from that WeakMap,
+with operation instrument and the trusted instrument.tipo / enum diagnostic.
+Different/default operations drop it. Never read exception properties such as
+rejectedEnumFingerprint, stage or httpStatus; forged metadata cannot originate a
+fingerprint. Transport failures do not propagate decoder metadata. The WeakMap
+retains neither raw strings nor payloads; JSON.stringify(error) and inspect(error)
+do not expose the fingerprint. Only the explicitly bound runner projection does.
+
+This is a very limited exception to the prior prohibition on diagnostics derived
+from rejected values, NOT permission to print a rejected value. It reveals a
+coarse local classification, not documentary evidence or an exact wire spelling.
+It creates no alias and cannot justify one by itself. Any future alias requires
+official evidence and its own ADR. Even a unique match remains invalid_payload:
+no DTO, no action 2, no retry, refresh, re-login or additional GET. Current aliases,
+request allowlists, identity equality, auth/token behavior and Step 5 are unchanged.
+
+Offline tests cover the required fingerprints, collision, boundary/charset rules,
+all canonical members and existing alias acceptance, WeakMap propagation and
+non-propagation, private-context exclusion, forged metadata, synthetic sentinel
+non-disclosure, and exact runner output/request counts. No real credentials or
+IOL calls are used. Further real verification remains user-run and subject to
+independent implementation review and the existing approval/incident runbook.

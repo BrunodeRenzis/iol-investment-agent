@@ -10,7 +10,13 @@ import {
   type Decoded,
   type Decoder,
 } from './json';
-import { requiredKind, schemaFailure } from './schema-diagnostic';
+import {
+  requiredKind,
+  schemaDiagnostic,
+  schemaFailure,
+} from './schema-diagnostic';
+import { SECURITY_TYPES } from './security-types';
+import { recordRejectedEnumFingerprint } from './enum-fingerprint';
 
 // Response-only TituloModel vocabulary: V2 plus D personal title examples.
 // ADR-023 / IOL_CONTRACT.md. Never reused by request routing or other enums.
@@ -45,57 +51,7 @@ const currency = enumeration([
   'peso_Uruguayo',
 ] as const);
 const settlement = enumeration(['t0', 't1', 't2', 't3'] as const);
-const securityType = enumeration([
-  'oPCIONES',
-  'cEDEARS',
-  'titulosPublicos',
-  'aCCIONES',
-  'cUPONESPRIVADOS',
-  'fONDOSDEINVERSION',
-  'aDR',
-  'iNDICES',
-  'bOCON',
-  'bONEX',
-  'cERTIFICADOSPAR',
-  'oBLIGACIONESNEGOCIABLES',
-  'oBLIGACIONESPYME',
-  'cUPONESOBL',
-  'lETRASDEPRECADO',
-  'lETES',
-  'tITULOSDEUDA',
-  'cUPONESEXTRANJEROS',
-  'cUPONESTPI',
-  'bONOS',
-  'dIVISAS',
-  'fONDOSCOTIZANTES',
-  'cAUCIONESPESOS',
-  'cAUCIONESDOLARES',
-  'cERTIFICADOSCREDITOFISCAL',
-  'cEDRO',
-  'bODEN',
-  'fONDOSRENTAFIJA',
-  'fideicomiso',
-  'rENTAFIJA',
-  'cHEQUEPAGODIFERIDO',
-  'componenteDEEtf',
-  'componenteDEEtf_Viejo',
-  'futuros',
-  'soja',
-  'maiz',
-  'trigo',
-  'oro',
-  'petroleo',
-  'fideicomisoFinanciero',
-  'obligacionesNegociables',
-  'letraNota',
-  'fondoComundeInversion',
-  'titulosPublicosSuscribibles',
-  'accionesSuscribibles',
-  'incrementoCapital',
-  'letesSuscribibles',
-  'letras',
-  'fondosMutuosUSA',
-] as const);
+const securityType = enumeration(SECURITY_TYPES);
 const identity = {
   simbolo: stringValue,
   mercado: enumeration(IOL_MARKETS),
@@ -108,8 +64,15 @@ export const instrument = object({
   ...identity,
   mercado: titleMarket,
   // ADR-024: D personal Titulos Titulos example; also reused by portfolio titles.
-  tipo: (value: unknown, path?: string) =>
-    securityType(value === 'CEDEARS' ? 'cEDEARS' : value, path),
+  tipo: (value: unknown, path?: string) => {
+    try {
+      return securityType(value === 'CEDEARS' ? 'cEDEARS' : value, path);
+    } catch (error: unknown) {
+      // Only this enum-rejection branch may originate the private fingerprint.
+      recordRejectedEnumFingerprint(error, value, schemaDiagnostic(error));
+      throw error;
+    }
+  },
   descripcion: optional(stringValue),
 });
 const balance = object({

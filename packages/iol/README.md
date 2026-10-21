@@ -221,6 +221,24 @@ No values, lengths, bodies, headers, URLs or provider messages are disclosed.
 Diagnostics are local facts, not evidence of remote issuance, validity or revocation.
 The runbook specifies exact warnings and the unchanged waiting/incident policy.
 
+ADR-026 adds one private rejectedEnumFingerprint for instrument.tipo / enum only.
+The strict decoder still rejects the input. A separate diagnostic fold compares
+bounded printable ASCII strings to the same unchanged 49 V2 members (no duplicate
+list): lowercase and remove ASCII spaces/underscores. A unique match reports the
+canonical code constant plus closed casing/separator labels and a padding boolean;
+collisions report only ambiguous. No match reports only none and a charset label.
+Non-ASCII, controls and over-64-character inputs report none / other without folding.
+The actual wire value, length, hash and substrings are never printed or retained
+in metadata. Details and label semantics are specified in the runbook and ADR-026.
+
+Only the specific type rejection branch originates this frozen WeakMap metadata.
+payloadFailure preserves it only for operation instrument and its exact trusted
+path/kind. The runner emits it only during action 1; no portfolio, account, quote,
+auth or other field receives it. Forged exception properties are ignored. The
+fingerprint is neither documentary evidence nor an alias: invalid_payload still
+ends the session with no DTO, next action or retry. Future aliases require official
+evidence and a separate ADR. Request and response acceptance policies are unchanged.
+
 ## Validation
 
 `npm test` discovers `packages/iol/test/*.test.ts` after compilation through the

@@ -145,6 +145,38 @@ sanitized outcome in IOL_CONTRACT.md after review. Retain unresolved semantics a
 UNKNOWN. Only then decide whether Step 4 acceptance is satisfied; Step 5 remains
 separately gated.
 
+## Restricted action-1 enum fingerprint (ADR-026)
+
+Only a rejected instrument.tipo string with kind enum during action 1 may add
+rejectedEnumFingerprint to the stopped-session JSON. The payload still fails with
+invalid_payload and the session ends; do not proceed to action 2 or retry.
+
+The output is entirely closed vocabulary, never the received wire value:
+
+- A unique diagnostic fold to one of the 49 V2 security types reports that
+  canonical member, casing (all_upper/all_lower/first_upper/first_lower/mixed),
+  separators (none/underscore/space/mixed), and padded (boolean).
+- Multiple matches reports only foldsToV2Member ambiguous. The two documented
+  obligations-negotiables spellings collide; no member is selected.
+- No match reports only foldsToV2Member none and charset
+  ascii_letters/ascii_word/other. No casing, separators or length is reported.
+- Non-ASCII, controls or more than 64 characters reports only none / other;
+  the value is not truncated or Unicode-normalized.
+
+Folding lowercases and removes ASCII spaces/underscores for diagnostics only.
+Uniform-case labels take precedence; first_upper/first_lower compare against the
+canonical case pattern with only its initial letter forced to that case.
+Padded means an ASCII space at either edge. ascii_word covers letters, digits and
+underscores. No arbitrary string, body, header, symbol, hash or token is emitted.
+Portfolio/account/balance/auth/quote failures and other instrument fields retain
+their existing diagnostics without this fingerprint.
+
+Share only the sanitized JSON, never a payload or credential. This fingerprint
+cannot reveal the exact wire spelling, establish official evidence or authorize
+a new alias. Unknown production values remain UNKNOWN. Independent review and
+official evidence plus a new ADR are required before changing accepted values.
+The existing incident/waiting policy still applies after this stopped session.
+
 ## Session disposal and incident procedure
 
 ### Authentication diagnostics (ADR-025)

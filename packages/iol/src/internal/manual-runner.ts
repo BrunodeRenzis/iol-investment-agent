@@ -13,6 +13,7 @@ import {
 } from './manual-summary';
 import { assertManualRuntime } from './manual-preflight';
 import { schemaDiagnostic } from './schema-diagnostic';
+import { rejectedEnumFingerprint } from './enum-fingerprint';
 import {
   authDiagnostic,
   authWarning,
@@ -45,6 +46,7 @@ export async function runManualVerification(
   let credentials: PasswordGrantCredentials | undefined;
   let username: string | undefined;
   let password: string | undefined;
+  let diagnosticOperation: 'instrument' | undefined;
   const stop = (): void => {
     controller.abort();
     session?.dispose();
@@ -90,11 +92,13 @@ export async function runManualVerification(
         throw new IolError('allowlist_rejection');
       preflight();
       switch (choice) {
-        case '1':
-          io.write(
-            instrumentSummary(await adapter.getInstrument('bCBA', 'AL30')),
-          );
+        case '1': {
+          diagnosticOperation = 'instrument';
+          const instrument = await adapter.getInstrument('bCBA', 'AL30');
+          diagnosticOperation = undefined;
+          io.write(instrumentSummary(instrument));
           break;
+        }
         case '2':
           io.write(quoteSummary(await adapter.getQuoteDetail('bCBA', 'AL30')));
           break;
@@ -123,6 +127,14 @@ export async function runManualVerification(
     const code = new IolError(
       error instanceof IolError ? error.code : 'invalid_payload',
     ).code;
+    const fingerprint =
+      code === 'invalid_payload'
+        ? rejectedEnumFingerprint(
+            error,
+            diagnosticOperation,
+            schemaDiagnostic(error),
+          )
+        : undefined;
     io.write(
       JSON.stringify({
         operation: 'session',
@@ -132,6 +144,7 @@ export async function runManualVerification(
         ...(schemaDiagnostic(error)
           ? { diagnostic: schemaDiagnostic(error) }
           : {}),
+        ...(fingerprint ? { rejectedEnumFingerprint: fingerprint } : {}),
       }),
     );
     if (authentication && !session) io.write(authWarning(authentication));

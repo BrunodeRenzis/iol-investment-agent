@@ -1,4 +1,5 @@
 import { IolError } from '../error';
+import { propagateEnumFingerprint } from './enum-fingerprint';
 
 const KINDS = [
   'missing',
@@ -126,10 +127,12 @@ export function payloadFailure(
   fallbackPath = 'payload',
 ): IolError {
   const diagnostic = schemaDiagnostic(error);
-  return schemaFailure(
+  const safeError = schemaFailure(
     diagnostic?.kind ?? 'malformed',
     diagnostic?.path ?? fallbackPath,
   );
+  propagateEnumFingerprint(error, safeError, fallbackPath, diagnostic);
+  return safeError;
 }
 export function requiredKind(value: unknown): FailureKind {
   return value === undefined ? 'missing' : value === null ? 'null' : 'type';
